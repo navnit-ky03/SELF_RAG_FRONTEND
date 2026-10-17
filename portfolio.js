@@ -6,7 +6,7 @@ const $ = s => document.querySelector(s);
 const EMAIL = 'yadavnv1526@gmail.com';
 
 /* Configurable FastAPI Backend Streaming Endpoint for RAG Chatbot */
-const CHATBOT_STREAM_API_URL = "https://self-rag-engine.onrender.com";
+const CHATBOT_STREAM_API_URL = "https://self-rag-engine.onrender.com/chat/stream";
 
 /* Currently active project selected in modal */
 let currentProject = null;
@@ -23,7 +23,7 @@ const chatHistory = [
    RENDER COLD-START PRE-WARMER
    ========================================================================== */
 (async function prewarmRenderBackend() {
-  const HEALTH_URL = "https://self-rag-engine.onrender.com";
+  const HEALTH_URL = "https://self-rag-engine.onrender.com/";
   try {
     // Fire background GET request as soon as page loads
     await fetch(HEALTH_URL, { method: 'GET', mode: 'cors' });
