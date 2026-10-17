@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Navnit Kumar Yadav | ML & Agentic AI Architect</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+    <!-- Markdown Parser for Live README Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="portfolio.css">
+    <script src="portfolio.js" defer></script>
+</head>
+<body>
+    <div id="bar"></div>
+    
+    <!-- Top Navigation Bar -->
+    <header>
+        <div class="w hd">
+            <a class="m lg" href="#top">navnit@portfolio:~$</a>
+            <nav class="m" id="mainNav">
+                <a class="l on" href="#top">HOME</a>
+                <a class="l" href="#flagship">FLAGSHIP</a>
+                <a class="l" href="#projects">PROJECTS</a>
+                <a class="l" href="#stack">STACK</a>
+                <a class="l" href="#terminal">TERMINAL</a>
+                <a class="cta" href="#contact">CONTACT</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="top">
+        <!-- Hero Section -->
+        <section class="w hero-section" id="home">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <p class="m ey">Final-Year B.Tech Data Science · IILM University (Grad May 2027)</p>
+                    <h1>I build <span class="gr">ML & Agentic AI Systems</span> that actually ship.</h1>
+                    <p class="sub">Specializing in end-to-end 3D medical vision segmentation, deterministic voice receptionists, and self-correcting RAG architectures.</p>
+                    
+                    <div class="row hero-ctas">
+                        <a class="b pr" href="#flagship">See Flagship Systems ↗</a>
+                        <a class="b" href="#projects">All 6 Projects ↗</a>
+                        <a class="b" href="https://github.com/navnit-ky03" target="_blank" rel="noopener">GitHub ↗</a>
+                    </div>
+
+                    <div class="stats m">
+                        <div class="stat-box">
+                            <b data-n="6">0</b>
+                            <span>Deployed AI Systems</span>
+                        </div>
+                        <div class="stat-box">
+                            <b>0.884</b>
+                            <span>3D MRI Dice Score</span>
+                        </div>
+                        <div class="stat-box">
+                            <b>&lt;12ms</b>
+                            <span>Vector RAG Latency</span>
+                        </div>
+                    </div>
+
+                    <div class="term m">
+                        <div class="dots"><i></i><i></i><i></i></div>
+                        <div id="ty"></div>
+                    </div>
+                </div>
+
+                <!-- Hero AI Chatbot Hub Centerpiece -->
+                <div class="hero-chat-container" id="heroChatConsole">
+                    <div class="hero-chat-aura"></div>
+                    <div class="hero-chat-card">
+                        <div class="chat-header">
+                            <div class="chat-title">
+                                <div class="chat-status-dot pulse"></div>
+                                <span>Navnit AI Assistant</span>
+                            </div>
+                            <div class="chat-badge m">Online (Groq · LangGraph RAG)</div>
+                        </div>
+
+                        <div class="chat-body" id="heroChatBody">
+                            <div class="msg bot">
+                                <div class="cmd-prefix">// system_init</div>
+                                Hi! I'm Navnit's RAG AI assistant. Ask me anything about his projects, model metrics, or tech stack.
+                            </div>
+                        </div>
+
+                        <div class="chat-chips">
+                            <button class="chip" onclick="sendSharedChip('What is Navnit\'s core tech stack?')">⚡ Core Tech Stack</button>
+                            <button class="chip" onclick="sendSharedChip('Tell me about NeuroScan AI (3D Segmentation)')">🧠 NeuroScan AI</button>
+                            <button class="chip" onclick="sendSharedChip('How accurate is the Fraud Engine?')">📊 Fraud Accuracy</button>
+                            <button class="chip" onclick="sendSharedChip('How can I contact Navnit?')">📞 Hire / Contact</button>
+                        </div>
+
+                        <div class="chat-footer">
+                            <div class="input-wrapper">
+                                <input type="text" class="chat-input" id="heroChatInput" placeholder="Ask anything about Navnit... [Press Ctrl+K to focus]" autocomplete="off" />
+                                <span class="shortcut-hint m">Ctrl+K</span>
+                            </div>
+                            <button class="chat-send" id="heroChatSend">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flagship Systems Section -->
+        <section id="flagship" class="w rv section-gap">
+            <h2>Flagship Systems</h2>
+            <p class="lead">Three end-to-end architectures demonstrating production depth. Click any pipeline step to inspect execution logic.</p>
+            <div class="fl" id="fl">
+                <div class="tabs" id="tabs"></div>
+                <div class="pg"><div id="pg"></div></div>
+                <div class="fb">
+                    <h3 id="ft"></h3>
+                    <div class="tg m" id="fk"></div>
+                    <p id="fd" style="color:var(--text-muted)"></p>
+                    <div class="pl" id="pl"></div>
+                    <div class="tip" id="tip"></div>
+                    <ul class="pts" id="fp"></ul>
+                    <div class="lk" id="fx"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- All Projects Section -->
+        <section id="projects" class="w rv section-gap">
+            <h2>All Deployed Projects</h2>
+            <p class="lead">Six production applications, all live and maintained. Click any row to open full technical specifications, architecture diagrams, or read full README docs.</p>
+            <div class="fil" id="fil"></div>
+            <div class="project-list" id="projectList"></div>
+        </section>
+
+        <!-- Tech Stack Section -->
+        <section id="stack" class="w rv section-gap">
+            <h2>Tech Stack &amp; Skills</h2>
+            <p class="lead">Engineered tools across machine learning, agentic automation, computer vision, and backend microservices.</p>
+            <div class="sg">
+                <div>
+                    <h4>CORE ML</h4>
+                    <div class="sk">
+                        <span>Python</span><span>SQL</span><span>PyTorch</span><span>Scikit-Learn</span><span>XGBoost</span><span>Pandas</span><span>NumPy</span><span>SMOTE</span>
+                    </div>
+                </div>
+                <div>
+                    <h4>GENAI &amp; AGENTS</h4>
+                    <div class="sk">
+                        <span>LangGraph</span><span>Pinecone</span><span>RAG</span><span>Tool Calling</span><span>n8n</span><span>Groq API</span><span>Embeddings</span><span>Prompt Design</span>
+                    </div>
+                </div>
+                <div>
+                    <h4>VISION &amp; MEDICAL</h4>
+                    <div class="sk">
+                        <span>3D Segmentation</span><span>MONAI</span><span>ONNX Runtime</span><span>NIfTI</span><span>OpenCV</span>
+                    </div>
+                </div>
+                <div>
+                    <h4>DEPLOYMENT &amp; BACKEND</h4>
+                    <div class="sk">
+                        <span>FastAPI</span><span>Pydantic v2</span><span>Streamlit</span><span>Supabase</span><span>ElevenLabs</span><span>HF Hub</span><span>Plotly</span><span>Docker</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Terminal Section -->
+        <section id="terminal" class="w rv section-gap">
+            <h2>Interactive Shell</h2>
+            <p class="lead">Type a command or click a chip below to explore Navnit's background directly.</p>
+            <div class="tm m" id="tm">
+                <div id="out"></div>
+                <div class="ip">
+                    <span>$</span>
+                    <input id="in" aria-label="terminal command" autocomplete="off" spellcheck="false" placeholder="type help">
+                </div>
+            </div>
+            <div class="row" id="qc"></div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="w rv section-gap">
+            <h2>Get In Touch</h2>
+            <p class="lead">Open to Data Science, AI/ML Engineering, and Agentic RAG internship opportunities.</p>
+            <div class="row">
+                <button class="b pr" id="cp" type="button">Copy Email</button>
+                <a class="b" href="mailto:yadavnv1526@gmail.com">Send Email ↗</a>
+                <a class="b" href="https://github.com/navnit-ky03" target="_blank" rel="noopener">github.com/navnit-ky03 ↗</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>© 2026 Navnit Kumar Yadav · Greater Noida, Uttar Pradesh, India</footer>
+    <div class="ts" id="ts" role="status"></div>
+
+    <!-- Centered Modal with Tab Bar (Overview, Architecture, Full README) -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="project-modal" id="projectModal">
+            <button class="modal-close" id="modalClose" aria-label="Close modal">✕</button>
+            <div class="modal-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="m modal-num" id="mNum">01</span>
+                    <div class="m modal-tag" id="mDomain">AI / ML</div>
+                </div>
+                <h3 id="mTitle">Project Title</h3>
+
+                <!-- Modal Sub-Navigation Tabs -->
+                <div class="modal-tabs m" id="modalTabs">
+                    <button class="m-tab on" data-tab="overview">📋 Overview</button>
+                    <button class="m-tab" data-tab="architecture">🏗️ Architecture Diagram</button>
+                    <button class="m-tab" data-tab="readme">📖 Full README.md</button>
+                </div>
+            </div>
+            
+            <div class="modal-body">
+                <!-- TAB 1: Overview -->
+                <div class="modal-tab-content on" id="tabOverview">
+                    <div class="modal-section">
+                        <h5>Problem Statement</h5>
+                        <p id="mProblem"></p>
+                    </div>
+
+                    <div class="modal-section">
+                        <h5>Architecture</h5>
+                        <p id="mArch"></p>
+                    </div>
+
+                    <div class="modal-section">
+                        <h5>Engineering Decisions</h5>
+                        <ul id="mDecisions"></ul>
+                    </div>
+
+                    <div class="modal-section">
+                        <h5>Tech Stack</h5>
+                        <div class="ch" id="mStack"></div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Architecture Diagram -->
+                <div class="modal-tab-content" id="tabArchitecture">
+                    <div class="diagram-wrapper" id="mDiagramWrapper"></div>
+                </div>
+
+                <!-- TAB 3: Full Rendered README -->
+                <div class="modal-tab-content" id="tabReadme">
+                    <div class="readme-renderer msg-content" id="mReadmeContent">
+                        <p style="color:var(--text-muted)">Select project to load README documentation...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" id="mLinks"></div>
+        </div>
+    </div>
+
+    <!-- Floating Docked Chat Widget with Fixed Crisp Neon SVG Icon -->
+    <button class="chat-fab" id="chatFab" aria-label="Open AI Assistant">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    </button>
+
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div class="chat-title">
+                <div class="chat-status-dot pulse"></div>
+                <span>Navnit AI Assistant</span>
+            </div>
+            <button class="chat-close" id="chatClose" aria-label="Close chat">✕</button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="msg bot">
+                <div class="cmd-prefix">// system_init</div>
+                Hi! I'm Navnit's RAG AI assistant. Ask me anything about his projects, experience, or technical stack.
+            </div>
+        </div>
+        <div class="chat-chips">
+            <button class="chip" onclick="sendSharedChip('What is Navnit\'s core tech stack?')">⚡ Tech Stack</button>
+            <button class="chip" onclick="sendSharedChip('Tell me about NeuroScan AI')">🧠 NeuroScan AI</button>
+            <button class="chip" onclick="sendSharedChip('How accurate is the Fraud Engine?')">📊 Fraud Engine</button>
+        </div>
+        <div class="chat-footer">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question..." autocomplete="off" />
+            <button class="chat-send" id="chatSend">Send</button>
+        </div>
+    </div>
+</body>
+</html>
