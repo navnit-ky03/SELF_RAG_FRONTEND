@@ -5,8 +5,8 @@
 const $ = s => document.querySelector(s);
 const EMAIL = 'yadavnv1526@gmail.com';
 
-/* Configurable FastAPI Backend Streaming Endpoint for RAG Chatbot */
-const CHATBOT_STREAM_API_URL = "https://self-rag-engine.onrender.com/chat/stream";
+/* Configurable FastAPI Backend Endpoint for RAG Chatbot */
+const CHATBOT_API_URL = "https://self-rag-engine.onrender.com/chat";
 
 /* Currently active project selected in modal */
 let currentProject = null;
@@ -19,6 +19,7 @@ const chatHistory = [
     text: "Hi! I'm Navnit's RAG AI assistant. Ask me anything about his projects, experience, or technical stack."
   }
 ];
+
 /* ==========================================================================
    RENDER COLD-START PRE-WARMER
    ========================================================================== */
@@ -130,15 +131,15 @@ const F = [
       ['Pinecone RAG', 'Hybrid vector search queries indexed master knowledge base embeddings (<12ms latency).'],
       ['Relevance Filter', 'Batched LLM evaluator filters out ungrounded context chunks before generation.'],
       ['Self-Correction', 'Dual evaluator nodes (issup & isuse) test groundedness and execute query rewriting.'],
-      ['FastAPI Stream', 'Rate-limited microservice (10 req/min) streams SSE tokens in real-time to UI.']
+      ['FastAPI REST', 'Rate-limited microservice (10 req/min) delivers grounded answers to UI.']
     ],
     pts: [
       'Self-correcting LangGraph state graph with automated query rewriting loops',
       'Zero-hallucination guardrails suppressing ungrounded assertions and banning broken markdown tables',
-      'Decoupled REST backend architecture protected with SlowAPI rate-limiting and SSE streaming'
+      'Decoupled REST backend architecture protected with SlowAPI rate-limiting'
     ],
     l: [
-      ['Code ↗', 'https://github.com/navnit-ky03/master-rag-engine']
+      ['Code ↗', 'https://github.com/navnit-ky03/self_rag_engine']
     ]
   }
 ];
@@ -240,7 +241,7 @@ const P = [
         <text x="410" y="90" fill="#a78bfa" font-size="11">Pinecone Vector DB</text>
         <path d="M 550 85 L 600 85" stroke="#39ff9c" stroke-width="2"/>
         <rect x="600" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#39ff9c"/>
-        <text x="615" y="90" fill="#39ff9c" font-size="11">FastAPI Stream</text>
+        <text x="615" y="90" fill="#39ff9c" font-size="11">FastAPI REST</text>
       </svg>`,
     problem: 'Standard linear RAG pipelines frequently output ungrounded hallucinations, robotic preamble strings, and broken markdown tables when answering complex technical queries.',
     arch: 'Decoupled self-correcting RAG microservice built with LangGraph state graphs, Pinecone vector indexes, Groq LLM inference, and FastAPI.',
@@ -689,7 +690,7 @@ const io2 = new IntersectionObserver(es => es.forEach(e => {
 document.querySelectorAll('[data-n]').forEach(x => io2.observe(x));
 
 /* ==========================================================================
-   REAL-TIME SYNCHRONIZED MULTI-VIEW STREAMING RAG CHATBOT
+   REAL-TIME SYNCHRONIZED MULTI-VIEW RAG CHATBOT (NON-STREAMING Payload)
    ========================================================================== */
 
 let threadId = sessionStorage.getItem('navnit_chat_thread_id');
@@ -723,34 +724,15 @@ if (chatFab && chatClose) {
   chatClose.onclick = () => chatWindow.classList.remove('open');
 }
 
-/* Append User Message Concurrently to Both Chat Views */
-function appendUserMessageToAllViews(text) {
-  chatHistory.push({ text, sender: 'user', prefix: '' });
+/* Append User/Bot Message Concurrently to Both Chat Views */
+function appendMessageToAllViews(text, sender, prefix = '') {
+  chatHistory.push({ text, sender, prefix });
   const bodies = [$('#heroChatBody'), $('#chatBody')].filter(Boolean);
 
   bodies.forEach(bodyEl => {
     const msg = document.createElement('div');
-    msg.className = 'msg user';
-
-    const content = document.createElement('div');
-    content.className = 'msg-content';
-    content.textContent = text;
-
-    msg.append(content);
-    bodyEl.append(msg);
-    bodyEl.scrollTop = bodyEl.scrollHeight;
-  });
-}
-
-/* Prepare Synchronized Streaming Bot Message Elements in Both Views */
-function prepareStreamingBotMessageToAllViews(prefix = '// rag_response') {
-  const bodies = [$('#heroChatBody'), $('#chatBody')].filter(Boolean);
-  const targetElements = [];
-
-  bodies.forEach(bodyEl => {
-    const msg = document.createElement('div');
-    msg.className = 'msg bot';
-
+    msg.className = `msg ${sender}`;
+    
     if (prefix) {
       const p = document.createElement('div');
       p.className = 'cmd-prefix';
@@ -760,36 +742,37 @@ function prepareStreamingBotMessageToAllViews(prefix = '// rag_response') {
 
     const content = document.createElement('div');
     content.className = 'msg-content';
-    content.innerHTML = '<span style="color:var(--text-muted)">Thinking...</span>';
+
+    if (typeof marked !== 'undefined' && sender === 'bot') {
+      content.innerHTML = marked.parse(text);
+    } else {
+      content.textContent = text;
+    }
 
     msg.append(content);
     bodyEl.append(msg);
     bodyEl.scrollTop = bodyEl.scrollHeight;
-
-    targetElements.push({ bodyEl, contentEl: content });
   });
-
-  return {
-    update(accumulatedText) {
-      targetElements.forEach(({ bodyEl, contentEl }) => {
-        if (typeof marked !== 'undefined') {
-          contentEl.innerHTML = marked.parse(accumulatedText);
-        } else {
-          contentEl.textContent = accumulatedText;
-        }
-        bodyEl.scrollTop = bodyEl.scrollHeight;
-      });
-    },
-    setError(errMessage) {
-      targetElements.forEach(({ bodyEl, contentEl }) => {
-        contentEl.textContent = errMessage;
-        bodyEl.scrollTop = bodyEl.scrollHeight;
-      });
-    }
-  };
 }
 
-/* Synchronized SSE Streaming API Execution */
+/* Append Status Indicator Concurrently to Both Chat Bodies */
+function appendStatusToAllViews(text) {
+  const bodies = [$('#heroChatBody'), $('#chatBody')].filter(Boolean);
+  const statusEls = [];
+
+  bodies.forEach(bodyEl => {
+    const st = document.createElement('div');
+    st.className = 'chat-status-text';
+    st.textContent = text;
+    bodyEl.append(st);
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+    statusEls.push(st);
+  });
+
+  return statusEls;
+}
+
+/* Synchronized Non-Streaming API Execution (/chat) */
 async function executeRAGQuery(query, activeInputEl) {
   const q = query || (activeInputEl ? activeInputEl.value.trim() : '');
   if (!q) return;
@@ -799,14 +782,14 @@ async function executeRAGQuery(query, activeInputEl) {
   if (heroIn) heroIn.value = '';
   if (chatIn) chatIn.value = '';
 
-  // 1. Render User Query in both chat bodies
-  appendUserMessageToAllViews(q);
+  // 1. Render User query in both chat bodies
+  appendMessageToAllViews(q, 'user');
 
-  // 2. Spawn streaming message placeholders in both chat bodies
-  const streamer = prepareStreamingBotMessageToAllViews('// rag_response');
+  // 2. Spawn loading indicators in both chat bodies
+  const statusEls = appendStatusToAllViews('// querying_rag_pipeline...');
 
   try {
-    const response = await fetch(CHATBOT_STREAM_API_URL, {
+    const response = await fetch(CHATBOT_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -815,67 +798,20 @@ async function executeRAGQuery(query, activeInputEl) {
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`Server returned status ${response.status}`);
-    }
+    // Remove status indicators
+    statusEls.forEach(el => el.remove());
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-    let accumulatedText = '';
+    if (!response.ok) throw new Error(`Server returned status ${response.status}`);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n\n');
-      buffer = lines.pop(); // Hold incomplete trailing line in buffer
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('data: ')) {
-          const dataStr = trimmed.replace('data: ', '').trim();
-          if (dataStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(dataStr);
-            if (parsed.token) {
-              accumulatedText += parsed.token;
-              streamer.update(accumulatedText);
-            }
-          } catch (e) {
-            console.error('Error parsing SSE token:', e);
-          }
-        }
-      }
-    }
-
-    // Push final streamed answer into chat history
-    if (accumulatedText) {
-      chatHistory.push({
-        text: accumulatedText,
-        sender: 'bot',
-        prefix: '// rag_response'
-      });
-    } else {
-      const fallback = "I couldn't find specific details to answer that accurately.";
-      streamer.setError(fallback);
-      chatHistory.push({
-        text: fallback,
-        sender: 'bot',
-        prefix: '// rag_response'
-      });
-    }
+    const data = await response.json();
+    const answer = data.answer || "I couldn't find specific details to answer that accurately.";
+    
+    // Append full bot response to both chat views
+    appendMessageToAllViews(answer, 'bot', '// rag_response');
 
   } catch (err) {
-    const errorMsg = "Server waking up or unreachable. Please try again in a few seconds or reach out at yadavnv1526@gmail.com.";
-    streamer.setError(errorMsg);
-    chatHistory.push({
-      text: errorMsg,
-      sender: 'bot',
-      prefix: '// error'
-    });
+    statusEls.forEach(el => el.remove());
+    appendMessageToAllViews("Server waking up or unreachable. Please try again in a few seconds or reach out at yadavnv1526@gmail.com.", 'bot', '// error');
   }
 }
 
