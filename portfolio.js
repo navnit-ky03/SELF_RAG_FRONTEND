@@ -19,6 +19,19 @@ const chatHistory = [
     text: "Hi! I'm Navnit's RAG AI assistant. Ask me anything about his projects, experience, or technical stack."
   }
 ];
+/* ==========================================================================
+   RENDER COLD-START PRE-WARMER
+   ========================================================================== */
+(async function prewarmRenderBackend() {
+  const HEALTH_URL = "https://self-rag-engine.onrender.com/";
+  try {
+    // Fire background GET request as soon as page loads
+    await fetch(HEALTH_URL, { method: 'GET', mode: 'cors' });
+    console.log('[Pre-warm] Render backend wake-up signal sent successfully.');
+  } catch (err) {
+    console.warn('[Pre-warm] Render backend ping failed or waking up:', err);
+  }
+})();
 
 /* ==========================================================================
    SPA HASH ROUTER
