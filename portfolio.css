@@ -2505,3 +2505,229 @@ nav a[aria-current] {
 .msg.bot a { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
 .msg.bot code { color: var(--green); }
 .button [aria-hidden], .text-link [aria-hidden], .header-contact [aria-hidden], .brand-mark > span { font-family: 'DejaVu Sans', system-ui, sans-serif; }
+
+/* Portfolio v2.1: restrained electric accents over the existing layout. */
+:root {
+  --bg: #080d10;
+  --surface: #0e1717;
+  --surface-2: #14211e;
+  --line: #2a3c35;
+  --muted: #a8b9b1;
+  --green: #b4ff65;
+  --cyan: #64e8e7;
+}
+.hero { position: relative; isolation: isolate; }
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 -35px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(#65e8e709 1px, transparent 1px), linear-gradient(90deg, #65e8e709 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(ellipse at 65% 35%, #0009, transparent 72%);
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0 -35px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 12% 25%, #b4ff6508, transparent 48%), radial-gradient(ellipse at 87% 24%, #64e8e70a, transparent 48%);
+}
+.hero h1 .green { text-shadow: 0 0 32px #b4ff6518; }
+.button.primary { box-shadow: 0 0 18px #b4ff6510; }
+.button.primary:hover { box-shadow: 0 0 23px #b4ff6527; }
+.site-header { background: #080d10f5; }
+.site-header nav a { transition: color .16s, background .16s, box-shadow .16s; }
+.site-header nav a:hover { color: var(--cyan); background: #64e8e708; }
+.site-header nav a[aria-current] { color: var(--green); background: #b4ff6510; box-shadow: inset 0 -2px var(--green), 0 0 15px #b4ff6508; }
+.project-card { transition: transform .18s, border-color .18s, box-shadow .18s; }
+.project-card:hover, .project-card:focus-within { border-color: #95d965a6; box-shadow: 0 0 0 1px #b4ff6510, 0 8px 32px #64e8e70b; }
+.project-art { box-shadow: inset 0 -1px #64e8e70b; }
+.pipeline li:not(:last-child)::after { color: var(--cyan); text-shadow: 0 0 9px #64e8e72b; }
+.pipeline button { transition: background .16s, border-color .16s, box-shadow .16s; }
+.pipeline button[aria-pressed=true] { border-color: var(--green); background: #b4ff6512; box-shadow: inset 0 0 20px #b4ff6507, 0 0 16px #b4ff6510; }
+.pipeline button[aria-pressed=true] > span { color: var(--cyan); }
+.architecture { border-color: #51764d; background: linear-gradient(135deg, #13211b, #0b1618); }
+.skill-card { transition: background .16s, border-color .16s, box-shadow .16s; }
+.skill-card:hover, .skill-card[aria-pressed=true] { border-color: var(--cyan); box-shadow: inset 0 0 18px #64e8e707, 0 0 16px #64e8e70b; background: #152824; }
+.skill-card[aria-pressed=true] .skill-symbol { color: var(--green); border-color: var(--green); background: #b4ff6510; }
+.skill-map, .skill-project-link::before { border-color: #64e8e780; }
+.skill-project-link:hover { border-color: var(--cyan); box-shadow: 0 0 15px #64e8e70c; }
+.skill-detail { border-color: #64e8e754; background: linear-gradient(145deg, #15261d, #102023); }
+
+/* Suggestions remain outside the transcript and never replace backend answers. */
+.chat-card { border-color: #a3e97c85; background: linear-gradient(140deg, #142319, #0c191b); box-shadow: 0 0 0 1px #b4ff6508, 0 0 36px #64e8e709, 0 18px 60px #0005; }
+.hero-chat-card { height: 550px; transform: none; }
+.assistant-identity div > span { font-size: 10px; line-height: 1.5; }
+.chat-body { min-height: 110px; }
+.chat-suggestions { padding: 10px 13px 5px; border-top: 1px solid #50714742; flex: 0 0 auto; }
+.chat-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; gap: 7px; }
+.chat-chips .chip { min-height: 44px; font-size: 11px; padding: 9px 10px; justify-content: space-between; color: #d8e5d3; background: #ffffff03; border-color: #67875a66; line-height: 1.4; }
+.chat-chips .chip:hover { background: #b4ff6509; border-color: var(--green); box-shadow: 0 0 12px #b4ff650d; }
+.suggestion-chip > span { color: var(--cyan); }
+.suggestion-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+.suggestion-hint { font-size: 9px; color: #b7c5b3; }
+.more-questions { color: var(--cyan); border: 0; padding: 8px 0 8px 8px; background: none; min-height: 44px; font-size: 10px; white-space: nowrap; }
+.more-questions:hover { text-decoration: underline; text-underline-offset: 4px; }
+.chat-disclaimer { font-size: 10px; line-height: 1.6; padding: 9px 14px 12px; }
+.chat-disclaimer a { color: #baddad; text-decoration: underline; text-underline-offset: 3px; }
+.chat-form:focus-within { box-shadow: 0 0 12px #b4ff6510; }
+.chat-fab { display: none; }
+.js .chat-fab:not([hidden]) { display: inline-flex; }
+.site-header .brand { order: 0; }
+.site-header nav { order: 1; }
+.site-header .chat-fab {
+  position: static;
+  order: 2;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  background: #b4ff6510;
+  border-color: #b4ff6575;
+  color: var(--green);
+  box-shadow: 0 0 16px #b4ff650a;
+  font-size: 12px;
+  z-index: auto;
+}
+.site-header .chat-fab:hover { box-shadow: 0 0 18px #b4ff6518; border-color: var(--green); }
+.site-header .chat-fab > span:first-child { font-size: 19px; }
+.site-header .header-contact { order: 3; }
+.site-header .menu-toggle { order: 4; }
+.chat-window {
+  top: var(--chat-panel-top, 100px);
+  bottom: auto;
+  right: 25px;
+  height: var(--chat-panel-height, min(620px, calc(100dvh - 120px)));
+  max-height: calc(100dvh - 24px);
+  width: min(420px, calc(100vw - 28px));
+}
+.chat-window .chat-card { overflow-y: auto; overscroll-behavior: contain; }
+.chat-window .chat-body { flex: 1 0 100px; }
+.chat-window .chat-header, .chat-window .chat-form, .chat-window .chat-disclaimer { flex-shrink: 0; }
+.chat-window .chip { font-size: 10px; }
+
+/* Owner-confirmed professional availability; separate from the RAG evidence. */
+.availability-pill, .availability-label { display: inline-flex; align-items: center; gap: 9px; color: #d1efbc; font-size: 11px; line-height: 1.6; }
+.availability-pill { margin-top: 21px; min-height: 44px; padding: 9px 12px; border: 1px solid #b4ff6540; background: #b4ff6506; border-radius: 7px; }
+.availability-pill:hover { border-color: var(--green); }
+.availability-pill > span:first-child, .availability-label > span { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px #b4ff6533; flex-shrink: 0; }
+.hero .availability-pill + .button-row { margin-top: 18px; }
+.availability-section { display: grid; grid-template-columns: 1fr 1.15fr; gap: 65px; border-top: 1px solid var(--line); }
+.availability-section h2 { margin: 16px 0 24px; }
+.availability-section > div > p:not(.eyebrow) { font-size: 14px; max-width: 490px; }
+.availability-card { padding: 30px; border: 1px solid #b4ff6550; border-radius: 14px; background: linear-gradient(135deg, #14261b, #0c1c1e); }
+.availability-card > p { font-size: 13px; margin-top: 18px; }
+.service-list { list-style: none; padding: 0; margin: 22px 0; color: #c9d7c6; font-size: 12px; }
+.service-list li { position: relative; padding-left: 16px; margin-bottom: 11px; }
+.service-list li::before { content: '—'; color: var(--cyan); position: absolute; left: 0; }
+.contract-policy { font-size: 12px!important; line-height: 1.8; padding-top: 17px; border-top: 1px solid #86b17436; color: #c0cec0; }
+.availability-card .button { margin-top: 24px; }
+.contact-card .availability-label { margin-top: 22px; }
+.contact-card .service-list { margin: 20px 0; }
+.contact-card .contract-policy { margin-top: 20px; }
+
+/* Authentic local MRI imagery. The axial image is never enlarged above 240px. */
+.mri-section { padding-top: 18px; }
+.mri-section .section-heading > p { max-width: 320px; }
+.mri-console { background: #070c10; border: 1px solid #64e8e75c; border-radius: 15px; overflow: hidden; box-shadow: 0 0 24px #64e8e707; }
+.mri-console-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 24px; border-bottom: 1px solid #264346; background: linear-gradient(100deg, #101d20, #0a1518); }
+.mri-console-header > div { display: flex; align-items: center; gap: 10px; }
+.mri-console-header strong { font-size: 12px; font-weight: 500; }
+.mri-signal { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 9px #64e8e740; }
+.mri-modality { color: #a7c6c9; font: 9px var(--mono); letter-spacing: .08em; }
+.mri-layout { display: grid; grid-template-columns: 1.25fr 1fr; }
+.mri-image-column { padding: 24px; min-width: 0; }
+.mri-tabs { display: flex; gap: 7px; margin-bottom: 14px; }
+.mri-tabs button { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; min-height: 58px; border: 1px solid #354b4d; border-radius: 7px; color: #c1d2d4; padding: 10px 12px; background: #101b1e; font-size: 12px; transition: border-color .15s, background .15s; }
+.mri-tabs button > span { font: 9px var(--mono); color: #acbfc1; }
+.mri-tabs button[aria-selected=true] { color: var(--cyan); border-color: var(--cyan); background: #64e8e710; box-shadow: 0 0 12px #64e8e70b; }
+.mri-panel { margin: 0; animation: mriReveal .16s ease-out; }
+.mri-image-stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 340px; padding: 38px 20px; background: #000; border: 1px solid #27393d; border-radius: 9px; }
+.mri-image { display: block; width: 100%; max-width: 400px; height: auto; max-height: 280px; object-fit: contain; }
+.mri-image.axial { max-width: 240px; max-height: 240px; }
+.mri-plane-label, .mri-image-caption { position: absolute; color: #a0b4b8; font: 9px var(--mono); letter-spacing: .08em; }
+.mri-plane-label { left: 15px; top: 15px; }
+.mri-image-caption { right: 15px; bottom: 13px; font-size: 8px; }
+.mri-panel figcaption { font-size: 11px; color: #b6c7cb; margin-top: 13px; min-height: 35px; }
+.mri-legend { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #c5d4d7; margin-top: 12px; }
+.mri-legend > span { width: 9px; height: 9px; border-radius: 2px; background: #f26d77; flex-shrink: 0; }
+.mri-sample { padding: 29px; border-left: 1px solid #264346; background: linear-gradient(130deg, #102020, #0a1519); min-width: 0; }
+.mri-sample h3 { margin: 13px 0; font-size: 25px; }
+.mri-scan-name { font: 10px/1.7 var(--mono); color: #a4c0c4; overflow-wrap: anywhere; }
+.sample-results { display: flex; flex-direction: column; gap: 14px; margin: 23px 0; }
+.sample-results > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #30504b72; padding-bottom: 12px; }
+.sample-results dt { font-size: 11px; color: #b2c8c8; max-width: 150px; }
+.sample-results dd { margin: 0; font: 20px Manrope, system-ui, sans-serif; color: #dbf3ed; letter-spacing: -.03em; white-space: nowrap; }
+.sample-results dd > span { font-size: 12px; color: #b1cdcb; }
+.sample-results > div:last-child dd { font-size: 14px; }
+.sample-scope { font-size: 11px; color: #c1d2cf; line-height: 1.9; }
+.sample-scope a { display: block; color: var(--cyan); margin-top: 8px; text-decoration: underline; text-underline-offset: 4px; }
+.mri-sample .text-link { margin-top: 14px; color: var(--green); font-size: 12px; }
+.mri-sample .fine-print { margin-top: 7px; font-size: 10px; }
+.mri-provenance { padding: 22px 24px; border-top: 1px solid #264346; }
+.mri-provenance p { font-size: 11px; line-height: 1.9; color: #b6c9ca; }
+.mri-provenance > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--cyan); font-size: 11px; text-decoration: underline; text-underline-offset: 4px; }
+.mri-provenance .mri-resolution-note { font-size: 10px; color: #a4b9bb; }
+@keyframes mriReveal { from { opacity: .7; } to { opacity: 1; } }
+@media(max-width: 1100px) {
+  .header-inner { gap: 12px; }
+  .site-header nav { gap: 3px; }
+  .site-header nav a { padding-left: 10px; padding-right: 10px; }
+  .availability-section { gap: 30px; }
+  .mri-sample { padding: 24px 20px; }
+  .mri-image-column { padding: 20px; }
+}
+@media(max-width: 800px) {
+  .hero-chat-card { height: 540px; }
+  .hero { align-items: center; }
+  .chat-chips .chip { font-size: 10px; padding: 8px; }
+  .suggestion-hint { font-size: 8px; max-width: 105px; }
+  .assistant-identity div > span { font-size: 9px; }
+  .mri-layout { grid-template-columns: 1fr; }
+  .mri-sample { border-left: 0; border-top: 1px solid #264346; padding: 25px; }
+  .sample-results { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .sample-results > div { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .availability-section { grid-template-columns: 1fr; }
+}
+@media(max-width: 640px) {
+  .site-header .header-inner { gap: 9px; }
+  .site-header .chat-fab { padding: 7px 9px; gap: 6px; font-size: 11px; }
+  .site-header .menu-toggle { gap: 8px; padding: 8px 10px; }
+  .hero::before, .hero::after { inset: 0 -10px; }
+  .hero .eyebrow { max-width: 290px; line-height: 1.9; }
+  .availability-pill { font-size: 10px; padding: 8px 10px; gap: 8px; }
+  .hero-chat-card { height: 540px; }
+  .chat-suggestions { padding-left: 11px; padding-right: 11px; }
+  .chat-chips .chip { min-height: 44px; font-size: 10px; }
+  .suggestion-hint { max-width: none; font-size: 8px; }
+  .more-questions { font-size: 9px; }
+  .chat-disclaimer { font-size: 9px; }
+  .chat-window { right: 14px; }
+  .chat-window .chat-body { flex-basis: 90px; }
+  .availability-card { padding: 24px 20px; }
+  .availability-section > div > p:not(.eyebrow) { font-size: 13px; }
+  .mri-section { padding-top: 5px; }
+  .mri-console-header { padding: 17px 15px; flex-wrap: wrap; gap: 9px; }
+  .mri-modality { font-size: 8px; }
+  .mri-image-column { padding: 16px 12px; }
+  .mri-tabs { gap: 5px; }
+  .mri-tabs button { padding: 9px 5px; font-size: 11px; min-height: 58px; }
+  .mri-tabs button > span { font-size: 9px; }
+  .mri-image-stage { min-height: 304px; padding: 32px 12px; }
+  .mri-image-caption { font-size: 7px; }
+  .mri-panel figcaption { font-size: 10px; line-height: 1.8; min-height: 36px; }
+  .mri-legend { font-size: 9px; line-height: 1.8; }
+  .mri-sample { padding: 24px 18px; }
+  .sample-results { grid-template-columns: 1fr 1fr; gap: 15px; }
+  .sample-results dt { font-size: 10px; }
+  .sample-results dd { font-size: 21px; }
+  .sample-results > div:last-child { grid-column: 1 / -1; }
+  .mri-provenance { padding: 20px 17px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .mri-panel { animation: none; }
+  .project-card:hover { transform: none; }
+}

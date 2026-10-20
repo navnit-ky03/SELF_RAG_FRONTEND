@@ -1,4 +1,4 @@
-# Navnit Kumar Yadav · Portfolio v2
+# Navnit Kumar Yadav · Portfolio v2.1
 
 A lightweight, static multipage portfolio with source-backed case studies, an interactive skills explorer, architecture walkthroughs, and two synchronized entry points to the existing RAG assistant. No production framework, runtime package, API key, or backend modification is required.
 
@@ -39,8 +39,12 @@ contact/index.html               Email and GitHub
 portfolio.js / portfolio.css      Shared browser behavior and styling
 data/projects.json               Single published-project registry
 data/skills.json                 Technology names, categories, descriptions
-data/site.json                   Contact details, About copy, optional public URL
+data/site.json                   Contact, About, confirmed availability, optional public URL
+data/chat-prompts.json           Recruiter and contextual prompt labels/full questions
+data/neuroscan.json              Authentic single-scan visualization manifest
+assets/neuroscan/                Three original WebPs and unchanged asset attribution
 scripts/build.mjs                Dependency-free static page generator
+scripts/refinements.mjs          Prompt, availability and MRI section renderers
 tests/                           Registry/link and browser acceptance tests
 docs/                            Evidence, review results, screenshots
 ```
@@ -102,3 +106,37 @@ After publication is approved, check in a normal browser:
 5. Test a mobile device, browser zoom, keyboard-only navigation, and a screen reader. The automated checks do not replace assistive-technology or real-device review.
 
 No merge or deployment is part of this implementation.
+
+## Portfolio v2.1 refinements
+
+The approved v2 layout, registry and twelve content routes are preserved. The refinement adds a low-opacity technical hero grid, restrained lime/cyan illumination, clearer navigation and architecture states, and selected-skill relationship highlighting. No dependencies, particle effects, streaming, hosting registration or deployment were added. Reduced-motion preferences disable transitions and the small MRI-panel fade.
+
+### Recruiter and contextual suggestions
+
+Edit `data/chat-prompts.json` to change the short button labels and full questions. Home has ten recruiter/client-oriented prompts: four are shown initially, and a keyboard-accessible **More questions** button cycles through manual groups. There is no automatic rotation. The full question appears in the accessible label/tooltip and is sent exactly as stored; no hidden context or qualification is appended.
+
+The floating assistant uses the current page's context: Home, Projects, NeuroScan, self-corrective RAG, Skills, About or Contact. Other project pages derive their questions from the published registry entry's actual title. Skills retain their individual technology-to-project question controls. Suggestions use the same conversation, session storage, thread ID, request lock, loading states and manual retry as typed questions. Choosing a homepage suggestion uses the visible main assistant. Browsing more suggestions does not send a request or reset history.
+
+### Accurate professional availability
+
+`data/site.json` → `professional` contains the owner-confirmed AI/ML engineering positioning, automation freelance availability, supported service list, and case-by-case ML/Data Science contract policy. About, Contact and automation CTAs derive from this data. The site does not imply professional employment experience or blanket acceptance of ML/DS work.
+
+This frontend content is separate from the RAG knowledge base. Neither the backend nor its knowledge base was changed. Assistant responses are not replaced with canned availability claims; each assistant links to Contact with a visible note that its sources may not contain recent availability. The owner can update backend knowledge separately.
+
+### Authentic MRI gallery
+
+`data/neuroscan.json` describes the owner-supplied `BraTS20_Validation_001_flair.nii` sample, three image paths, intrinsic dimensions, alt text, SHA-256 hashes and explicitly separate single-scan outputs. `assets/neuroscan/ASSET_NOTES.md` is preserved verbatim. The WebP assets are also byte-for-byte unchanged from the upload; they are already optimized and total approximately 48 KiB.
+
+The gallery appears immediately after the NeuroScan project hero, before the existing architecture walkthrough. It supports Axial (92), Coronal (128) and Sagittal (108) tabs with native buttons, roving tab focus, Left/Right/Home/End keys, labels and descriptive alt text. All three assets are requested locally up front, so switching needs no inference request. Without JavaScript, all three views remain readable. The page's existing Render pre-warming still runs; it is unrelated to MRI loading.
+
+The complete axial image is displayed at no more than its native 240×240 pixels. The other two images are cropped app captures. No raw unmodified scan was supplied, so there is no invented before/after comparison, additional slice or synthetic mask. Red means a **predicted** mask, not a ground-truth annotation. The single-scan volume/burden/detection output is labeled as a demonstration, independent of the owner-reported validation Dice in Results & evidence. These predictions are not clinical diagnoses or medical advice.
+
+To replace or add genuine captures later, preserve provenance, update the visualization manifest and its integrity-test fixtures, and rebuild. Do not infer new slices from these screenshots. The original NeuroScan Live Demo URL remains unchanged.
+
+### Header launcher and small screens
+
+Ask AI now occupies reserved header space instead of covering project/skill controls. On Home it is hidden while the main assistant is visible, except when retaining focus is necessary for keyboard access. The floating conversation panel remains shared. Native pointer activation avoids scrolling to the sticky header's original document position; Escape returns focus without a page jump.
+
+The panel sizes itself below the header using the available visual viewport and supports internal scrolling on short screens. Tests cover 320, 375, 768 and 1440 pixels, an additional 320×480 panel check, native touch activation, and minimum 44px key controls. Physical device keyboards and screen readers still need owner review.
+
+See `docs/V2_1_REFINEMENT_REVIEW.md` for the current refinement report and screenshot inventory. The original v2 evidence and live-check records are retained in `docs/EVIDENCE.md` and `docs/LIVE_CHECKS.md`.

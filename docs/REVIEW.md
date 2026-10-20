@@ -1,5 +1,7 @@
 # Portfolio v2 review
 
+Current refinement: see [Portfolio v2.1 review](V2_1_REFINEMENT_REVIEW.md). The original v2 baseline review follows.
+
 Implementation branch: `feature/portfolio-v2` in `navnit-ky03/SELF_RAG_FRONTEND`.
 Base: `e48cde0156ee1a7145e4ff5f1b3003ed713cc1d6` (`main` at inspection).
 Scope: frontend repository only. Other project repositories were read-only. No merge, deployment, production-branch overwrite, credentials or secrets were introduced.

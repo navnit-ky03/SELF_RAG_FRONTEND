@@ -1,9 +1,10 @@
 /* Navnit Kumar Yadav · Portfolio v2
    Buildless browser runtime. All factual content comes from data/*.json. */
 'use strict';
+document.documentElement.classList.add('js');
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const { projects, skills, site, base } = JSON.parse($('#site-data').textContent);
+const { projects, skills, site, base, suggestions } = JSON.parse($('#site-data').textContent);
 
 /* Keep old portfolio hash links useful after moving to static routes. */
 function legacyRoute() {
@@ -112,6 +113,48 @@ $$('[data-project-filter]').forEach(button => button.addEventListener('click', (
   filterProjects();
 }));
 $('#projectSearch')?.addEventListener('input', filterProjects);
+
+/* Three authentic local MRI views; switching never requests inference. */
+$$('.mri-tabs').forEach(tablist => {
+  const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+  function selectTab(index, focus = false) {
+    tabs.forEach((tab,i) => {
+      tab.setAttribute('aria-selected', String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = i !== index;
+    });
+    if (focus) tabs[index].focus();
+  }
+  tabs.forEach((tab,index) => {
+    tab.addEventListener('click', () => selectTab(index));
+    tab.addEventListener('keydown', event => {
+      const next = {ArrowRight:(index+1)%tabs.length, ArrowLeft:(index-1+tabs.length)%tabs.length, Home:0, End:tabs.length-1}[event.key];
+      if (next !== undefined) { event.preventDefault(); selectTab(next,true); }
+    });
+  });
+  selectTab(0);
+});
+
+/* Visitor-oriented, page-specific prompts. Pagination changes suggestions only;
+   the exact selected question still uses the existing shared request model. */
+$$('[data-chat-view]').forEach(view => {
+  let group = 0;
+  const groups = Math.ceil(suggestions.length / 4);
+  const button = view.querySelector('[data-more-questions]');
+  button.addEventListener('click', () => {
+    group = (group + 1) % groups;
+    const list = view.querySelector('[data-suggestion-list]');
+    list.replaceChildren();
+    suggestions.slice(group*4,group*4+4).forEach(({label,question}) => {
+      const prompt = element('button','chip suggestion-chip',label);
+      prompt.type = 'button'; prompt.dataset.question = question;
+      prompt.setAttribute('aria-label',question); prompt.title = question;
+      prompt.append(element('span','', '↗')); prompt.lastChild.setAttribute('aria-hidden','true');
+      prompt.disabled = inFlight; list.append(prompt);
+    });
+    view.querySelector('[data-suggestion-status]').textContent = `Question group ${group+1} of ${groups}`;
+  });
+});
 
 /* Preserve flagship node explanations with explicit, keyboard-accessible controls. */
 $$('.architecture').forEach(panel => {
@@ -271,7 +314,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
 
 /* One tab/session conversation across every static page and both entry points. */
 const STORAGE_KEY = 'navnit_portfolio_chat_v2';
-const greeting = 'Hi! I’m Navnit’s AI assistant. Ask me about his projects, skills, or engineering decisions. What would you like to explore?';
+const greeting = 'Hi! I can help you explore Navnit’s projects, engineering strengths, and fit for an opportunity. What would you like to know?';
 function newId() { return window.crypto?.randomUUID?.() || `thread_${Date.now()}_${Math.random().toString(36).slice(2)}`; }
 function loadConversation() {
   let saved;
@@ -429,22 +472,68 @@ $$('[data-chat-view]').forEach(view => {
   input.addEventListener('input', () => { conversation.drafts[view.dataset.chatView] = input.value; saveConversation(); });
   view.querySelector('form').addEventListener('submit', event => { event.preventDefault(); executeRAGQuery(null,input); });
 });
+/* Header-docked launcher reserves its own layout space instead of covering
+   cards or controls. Hide it while the main assistant is visible. */
+let heroAssistantVisible = false;
+function updateLauncherVisibility() {
+  const hero = $('#heroChatConsole');
+  if (hero) {
+    const rect = hero.getBoundingClientRect();
+    const visible = Math.min(rect.bottom,innerHeight) - Math.max(rect.top,$('.site-header').getBoundingClientRect().bottom);
+    heroAssistantVisible = visible > rect.height * .08;
+  }
+  $('#chatFab').hidden = heroAssistantVisible && $('#chatWindow').hidden && document.activeElement !== $('#chatFab');
+}
+if ($('#heroChatConsole') && 'IntersectionObserver' in window) {
+  const launcherObserver = new IntersectionObserver(entries => {
+    updateLauncherVisibility();
+  }, {threshold:[0,.08],rootMargin:'-90px 0px 0px 0px'});
+  launcherObserver.observe($('#heroChatConsole'));
+} else updateLauncherVisibility();
+window.addEventListener('scroll',updateLauncherVisibility,{passive:true});
+function positionChatPanel() {
+  const viewport = window.visualViewport;
+  const top = Math.max(12, $('.site-header').getBoundingClientRect().bottom + 12);
+  const available = (viewport?.height || innerHeight) + (viewport?.offsetTop || 0) - top - 12;
+  $('#chatWindow').style.setProperty('--chat-panel-top', `${top}px`);
+  $('#chatWindow').style.setProperty('--chat-panel-height', `${Math.max(100,Math.min(620,available))}px`);
+}
 function openChat() {
-  lastFocusedElement = document.activeElement;
+  if ($('#chatWindow').hidden) lastFocusedElement = document.activeElement;
   $('#chatWindow').hidden = false; $('#chatFab').setAttribute('aria-expanded','true');
-  $('#chatInput').focus();
+  updateLauncherVisibility(); positionChatPanel(); $('#chatInput').focus({preventScroll:true});
 }
 function closeChat() {
   $('#chatWindow').hidden = true; $('#chatFab').setAttribute('aria-expanded','false');
-  if (lastFocusedElement?.isConnected) lastFocusedElement.focus(); else $('#chatFab').focus();
+  if (lastFocusedElement === $('#chatFab')) $('#chatFab').hidden = false;
+  else updateLauncherVisibility();
+  if (lastFocusedElement?.isConnected && lastFocusedElement.getClientRects().length) lastFocusedElement.focus({preventScroll:true});
+  else if (heroAssistantVisible) $('#heroChatInput').focus({preventScroll:true});
+  else $('#chatFab').focus({preventScroll:true});
+  updateLauncherVisibility();
 }
+window.addEventListener('resize',positionChatPanel);
+window.visualViewport?.addEventListener('resize', () => {
+  positionChatPanel();
+  if (!$('#chatWindow').hidden && $('#chatWindow').contains(document.activeElement)) document.activeElement.scrollIntoView({block:'nearest'});
+});
+// Avoid a native focus scroll to the sticky header’s original document position.
+$('#chatFab').addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  event.preventDefault(); $('#chatFab').focus({preventScroll:true});
+});
+$('#chatFab').addEventListener('blur', () => requestAnimationFrame(updateLauncherVisibility));
 $('#chatFab').addEventListener('click', () => { if ($('#chatWindow').hidden) openChat(); else closeChat(); });
 $('#chatClose').addEventListener('click',closeChat);
 document.addEventListener('click', event => {
   const retry = event.target.closest('[data-retry]');
   if (retry) { const saved = conversation.messages.find(m => m.id === retry.dataset.retry); if (saved) executeRAGQuery(saved.text,null,saved.id); return; }
   const question = event.target.closest('[data-question]');
-  if (question && !inFlight) { openChat(); executeRAGQuery(question.dataset.question); }
+  if (question && !inFlight) {
+    if (question.closest('[data-chat-view=hero]')) $('#heroChatInput').focus();
+    else openChat();
+    executeRAGQuery(question.dataset.question);
+  }
   if (event.target.closest('[data-open-chat]')) openChat();
 });
 document.addEventListener('keydown', event => {

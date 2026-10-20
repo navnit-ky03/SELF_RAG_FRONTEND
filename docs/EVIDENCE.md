@@ -31,3 +31,14 @@ The initial shell check could not reach the configured Codex proxy. After suppor
 ## Other factual content
 
 Name, email and GitHub were retained from the original frontend. Education and biography use the owner-approved specification; no job, award, date of graduation or personal anecdote was invented. About copy is centralized in `data/site.json` for owner review. Decorative project motifs are locally generated abstract graphics, not representations of running applications.
+
+
+## Portfolio v2.1 owner-confirmed additions
+
+The owner confirmed active interest in automation freelance work in the v2.1 request. The listed service scope follows the documented n8n, agent, conversational, API-integration and data-processing work. ML/Data Science freelance/contract opportunities are explicitly considered individually after an email discussion. This is static professional information, not a claim that the unchanged RAG knowledge base already contains those details.
+
+The NeuroScan asset archive supplies three authentic model-predicted overlay views of `BraTS20_Validation_001_flair.nii`: Axial 92, Coronal 128 and Sagittal 108. Images and `assets/neuroscan/ASSET_NOTES.md` are retained byte-for-byte. The visualization manifest (`data/neuroscan.json`) includes file hashes, intrinsic dimensions and alt text. The complete axial image's native resolution is 240×240; it is not enlarged above that size. The other images are cropped app captures supplied by the owner.
+
+Single-scan outputs supplied in the request/asset notes: detected=true, estimated segmented volume **122.51 cm³**, estimated burden **7.68%**, peak axial slice **92**, input dimensions **240×240×155**. These are individual inference outputs, not model validation, general performance or clinical results. The separate owner-reported best validation Dice remains **0.8842** in Results & evidence. No original project metric or documented deployment URL was changed.
+
+No unmodified scan or raw inference dataset was supplied for a before/after comparison. No synthetic scan, slice or segmentation was generated. The gallery requires only local images; it does not call the NeuroScan backend. The user-provided running-app captures document provenance, while current independent demo availability remains a separate, unverified status.

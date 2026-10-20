@@ -73,6 +73,21 @@ class PortfolioBrowserTests(unittest.TestCase):
         route.fulfill(status=200,headers=HEADERS,json={'answer':answer})
     def goto(self,path=''):
         return self.page.goto(self.url+path,wait_until='domcontentloaded')
+    def open_floating(self):
+        if self.page.locator('body').get_attribute('data-page')=='home':
+            self.page.locator('.featured-section').evaluate("el => el.scrollIntoView({block:'start'})")
+        expect(self.page.locator('#chatFab')).to_be_visible()
+        self.page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+        box=self.page.locator('#chatFab').bounding_box()
+        # Native pointer click avoids Playwright trying to scroll a sticky header
+        # button into the document's 100px anchor-scroll padding.
+        self.page.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
+        expect(self.page.locator('#chatWindow')).to_be_visible()
+    def capture_component(self,selector,filename):
+        # Exclude fixed navigation outside the component from long element captures.
+        style=self.page.add_style_tag(content='.site-header,.skip-link,#scrollProgress {visibility:hidden!important}')
+        try:self.page.locator(selector).screenshot(path=str(ROOT/'docs/screenshots'/filename))
+        finally:style.evaluate('(el)=>el.remove()')
     def submit(self,text='Explain the RAG engine'):
         self.page.locator('#heroChatInput').fill(text)
         self.page.locator('[data-chat-view=hero] .send-button').click()
@@ -137,7 +152,7 @@ class PortfolioBrowserTests(unittest.TestCase):
         self.page.go_forward();self.assertIn('About',self.page.title())
     def test_05_shared_chat_dedup_drafts_and_session_navigation(self):
         self.goto();self.mode='hold'
-        self.page.locator('#chatFab').click()
+        self.open_floating()
         self.page.locator('#chatInput').fill('Keep the floating draft')
         self.page.locator('#chatClose').click()
         self.submit('One question only')
@@ -152,7 +167,7 @@ class PortfolioBrowserTests(unittest.TestCase):
         expect(self.page.locator('#chatInput')).to_have_value('Keep the floating draft')
         thread=self.posts[0]['thread_id']
         self.mode='success';self.goto('about/')
-        self.page.locator('#chatFab').click()
+        self.open_floating()
         expect(self.page.locator('#chatBody')).to_contain_text('Finished once')
         expect(self.page.locator('#chatInput')).to_have_value('Keep the floating draft')
         self.page.locator('#chatInput').fill('Second question');self.page.locator('#chatInput').press('Enter')
@@ -210,7 +225,7 @@ class PortfolioBrowserTests(unittest.TestCase):
         self.assertIsNone(self.page.evaluate('window.injected'))
     def test_11_inflight_navigation_recovers_question_without_post_replay(self):
         self.mode='hold';self.goto();self.submit('Saved across navigation')
-        self.goto('contact/');self.page.locator('#chatFab').click()
+        self.goto('contact/');self.open_floating()
         expect(self.page.locator('#chatBody .chat-error')).to_contain_text('interrupted by navigation')
         self.assertEqual(len(self.posts),1)
         self.mode='success';self.page.locator('#chatBody [data-retry]').click()
@@ -221,7 +236,8 @@ class PortfolioBrowserTests(unittest.TestCase):
         self.goto();self.submit()
         expect(self.page.locator('#heroChatBody')).to_contain_text('A grounded answer')
         self.page.keyboard.press('Control+k');expect(self.page.locator('#heroChatInput')).to_be_focused()
-        self.page.locator('#chatFab').click();expect(self.page.locator('#chatInput')).to_be_focused()
+        self.open_floating();expect(self.page.locator('#chatInput')).to_be_focused()
+        self.assertGreater(self.page.evaluate('scrollY'),500)
         self.page.keyboard.press('Escape');expect(self.page.locator('#chatFab')).to_be_focused()
         expect(self.page.locator('#chatWindow')).to_be_hidden()
     def test_13_invalid_session_and_readme_failure(self):
@@ -239,10 +255,24 @@ class PortfolioBrowserTests(unittest.TestCase):
         expect(page.get_by_role('link',name='Live Demo')).to_be_visible()
         expect(page.locator('#mainNav').get_by_role('link',name='Skills',exact=True)).to_be_visible()
         context.close()
-        self.goto();self.page.screenshot(path=str(ROOT/'docs/screenshots/home-desktop.png'),full_page=True)
-        self.page.set_viewport_size({'width':375,'height':812});self.page.screenshot(path=str(ROOT/'docs/screenshots/home-mobile.png'),full_page=True)
-        self.goto('skills/?skill=langgraph');self.page.screenshot(path=str(ROOT/'docs/screenshots/skills-mobile.png'),full_page=True)
-        self.page.set_viewport_size({'width':1440,'height':1000});self.goto('projects/neuroscan-ai/');self.page.screenshot(path=str(ROOT/'docs/screenshots/neuroscan-desktop.png'),full_page=True)
+        self.goto()
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/home-desktop.png'),full_page=True)
+        self.capture_component('#heroChatConsole','home-chat-desktop.png')
+        self.page.set_viewport_size({'width':375,'height':812})
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/home-mobile.png'),full_page=True)
+        self.capture_component('#heroChatConsole','home-chat-mobile.png')
+        self.goto('skills/?skill=langgraph')
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/skills-mobile.png'),full_page=True)
+        self.goto('projects/neuroscan-ai/')
+        self.capture_component('#mri-gallery','mri-gallery-mobile.png')
+        self.page.set_viewport_size({'width':1440,'height':1000})
+        self.goto('projects/neuroscan-ai/')
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/neuroscan-desktop.png'),full_page=True)
+        self.capture_component('#mri-gallery','mri-gallery-desktop.png')
+        self.goto('contact/')
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/contact-desktop.png'),full_page=True)
+        self.page.set_viewport_size({'width':375,'height':812})
+        self.page.screenshot(path=str(ROOT/'docs/screenshots/contact-mobile.png'),full_page=True)
 
     def test_15_repository_prefix_legacy_links_contact_and_keyboard(self):
         self.goto('SELF_RAG_FRONTEND/projects/neuroscan-ai/')
@@ -266,5 +296,131 @@ class PortfolioBrowserTests(unittest.TestCase):
         self.assertEqual(len(self.posts),1)
         self.assertGreater(self.health_calls,1)
         self.assertLessEqual(self.health_calls,5)
+
+    def test_17_recruiter_prompts_pagination_and_exact_payloads(self):
+        prompts=json.loads((ROOT/'data/chat-prompts.json').read_text())['home']
+        self.goto()
+        expect(self.page.locator('#heroSuggestions [data-question]')).to_have_count(4)
+        expect(self.page.locator('#chatFab')).to_be_hidden()
+        more=self.page.locator('[data-chat-view=hero] [data-more-questions]')
+        for group in range(3):
+            current=prompts[group*4:group*4+4]
+            expect(self.page.locator('#heroSuggestions [data-question]')).to_have_count(len(current))
+            for index,prompt in enumerate(current):
+                button=self.page.locator('#heroSuggestions [data-question]').nth(index)
+                expect(button).to_have_attribute('data-question',prompt['question'])
+                expect(button).to_contain_text(prompt['label'])
+                button.click()
+                expect(self.page.locator('#heroChatBody .msg.bot')).to_have_count(len(self.posts)+1)
+                self.assertEqual(self.posts[-1]['question'],prompt['question'])
+                self.assertEqual(set(self.posts[-1]),{'question','thread_id'})
+                expect(self.page.locator('#chatWindow')).to_be_hidden()
+            more.focus();self.page.keyboard.press('Enter')
+            expect(more).to_be_focused()
+        self.assertEqual(len(self.posts),10)
+        self.assertEqual(len({post['thread_id'] for post in self.posts}),1)
+        expect(self.page.locator('#heroChatBody .msg.user')).to_have_count(10)
+        expect(self.page.locator('#heroSuggestions [data-question]')).to_have_count(4)
+    def test_18_contextual_prompts_use_existing_session_and_unmodified_answers(self):
+        prompts=json.loads((ROOT/'data/chat-prompts.json').read_text())
+        paths=[('','home'),('projects/','projects'),('projects/neuroscan-ai/','neuroscan-ai'),('projects/self-corrective-rag/','self-corrective-rag'),('skills/','skills'),('about/','about'),('contact/','contact')]
+        for index,(path,key) in enumerate(paths):
+            self.goto(path);self.open_floating()
+            buttons=self.page.locator('#floatingSuggestions [data-question]')
+            expect(buttons).to_have_count(min(4,len(prompts[key])))
+            expect(buttons.first).to_have_attribute('aria-label',prompts[key][0]['question'])
+            buttons.first.click()
+            expect(self.page.locator('#chatBody .msg.bot')).to_have_count(index+2)
+            self.assertEqual(self.posts[-1]['question'],prompts[key][0]['question'])
+            expect(self.page.locator('#chatBody .msg.bot').last).to_have_text('A grounded answer from the test backend.')
+            expect(self.page.locator('#chatWindow .chat-disclaimer')).to_contain_text('AI sources may not include recent availability')
+        self.assertEqual(len({post['thread_id'] for post in self.posts}),1)
+        expect(self.page.locator('#chatBody .msg.user')).to_have_count(len(paths))
+    def test_19_authentic_mri_planes_keyboard_attribution_and_no_inference(self):
+        self.health_mode='network'
+        requests=[];self.page.on('request',lambda request:requests.append(request.url))
+        self.goto('projects/neuroscan-ai/')
+        gallery=self.page.locator('#mri-gallery')
+        expect(gallery).to_be_visible()
+        for plane,index in [('axial',92),('coronal',128),('sagittal',108)]:
+            tab=self.page.locator('#mri-tab-'+plane);tab.click()
+            expect(tab).to_have_attribute('aria-selected','true')
+            panel=self.page.locator('#mri-panel-'+plane)
+            expect(panel).to_be_visible();expect(panel).to_contain_text('slice '+str(index))
+            image=panel.locator('img')
+            image.evaluate('(img)=>img.decode()')
+            self.assertTrue(image.evaluate('(img)=>img.complete && img.naturalWidth > 0'))
+            expect(image).to_have_attribute('alt',__import__('re').compile('model-predicted tumor mask'))
+        self.page.locator('#mri-tab-sagittal').focus();self.page.keyboard.press('ArrowRight')
+        expect(self.page.locator('#mri-tab-axial')).to_be_focused()
+        expect(self.page.locator('#mri-panel-axial')).to_be_visible()
+        self.assertLessEqual(self.page.locator('.mri-image.axial').bounding_box()['width'],240)
+        self.page.keyboard.press('End');expect(self.page.locator('#mri-panel-sagittal')).to_be_visible()
+        self.page.keyboard.press('Home');expect(self.page.locator('#mri-panel-axial')).to_be_visible()
+        self.assertIn('Owner-provided captures',gallery.inner_text())
+        self.assertIn('not ground-truth',gallery.inner_text())
+        self.assertIn('122.51',gallery.inner_text());self.assertIn('7.68',gallery.inner_text())
+        self.assertNotIn('0.8842',gallery.inner_text())
+        self.assertIn('0.8842',self.page.locator('#evidence').inner_text())
+        self.assertFalse(any('braintumorsegmentationmri.streamlit.app' in url for url in requests))
+        self.assertEqual(self.posts,[])
+        self.assertEqual(len([url for url in requests if url.endswith('.webp')]),3)
+        context=self.browser.new_context(java_script_enabled=False)
+        page=context.new_page();page.route('https://fonts.googleapis.com/**',lambda r:r.abort())
+        page.goto(self.url+'projects/neuroscan-ai/')
+        expect(page.locator('.mri-panel:visible')).to_have_count(3)
+        context.close()
+    def test_20_header_launcher_reserved_space_and_panel_fit(self):
+        for width in [320,375,768,1440]:
+            with self.subTest(width=width):
+                self.page.set_viewport_size({'width':width,'height':812})
+                self.goto();expect(self.page.locator('#chatFab')).to_be_hidden()
+                self.page.locator('.featured-section').evaluate("el=>el.scrollIntoView({block:'start'})")
+                expect(self.page.locator('#chatFab')).to_be_visible()
+                self.goto('skills/')
+                launcher=self.page.locator('#chatFab').bounding_box()
+                header=self.page.locator('.site-header').bounding_box()
+                self.assertGreaterEqual(launcher['y'],header['y'])
+                self.assertLessEqual(launcher['y']+launcher['height'],header['y']+header['height']+1)
+                for control in ['.site-header .brand','#menuToggle','#mainNav']:
+                    locator=self.page.locator(control)
+                    if not locator.is_visible():continue
+                    box=locator.bounding_box()
+                    overlap=min(launcher['x']+launcher['width'],box['x']+box['width'])-max(launcher['x'],box['x'])
+                    self.assertLessEqual(overlap,0,control+' overlaps launcher')
+                self.open_floating()
+                panel=self.page.locator('#chatWindow').bounding_box()
+                self.assertGreaterEqual(panel['x'],0);self.assertLessEqual(panel['x']+panel['width'],width+1)
+                self.assertGreaterEqual(panel['y'],header['height']);self.assertLessEqual(panel['y']+panel['height'],813)
+                self.assertGreaterEqual(self.page.locator('#chatWindow .send-button').bounding_box()['height'],44)
+                self.page.keyboard.press('Escape');expect(self.page.locator('#chatFab')).to_be_focused()
+                self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+        self.page.set_viewport_size({'width':320,'height':480});self.goto('contact/');self.open_floating()
+        panel=self.page.locator('#chatWindow').bounding_box()
+        self.assertLessEqual(panel['y']+panel['height'],481)
+        touch=self.browser.new_context(viewport={'width':375,'height':812},has_touch=True,is_mobile=True,reduced_motion='reduce')
+        page=touch.new_page();page.route('https://fonts.googleapis.com/**',lambda r:r.abort())
+        page.route(RENDER+'**',lambda r:r.fulfill(status=200,headers=HEADERS,json={'status':'ok'}))
+        page.goto(self.url+'skills/')
+        box=page.locator('#chatFab').bounding_box();page.touchscreen.tap(box['x']+box['width']/2,box['y']+box['height']/2)
+        expect(page.locator('#chatWindow')).to_be_visible()
+        page.locator('#chatClose').click();expect(page.locator('#chatWindow')).to_be_hidden()
+        touch.close()
+    def test_21_reduced_motion_and_representative_text_contrast(self):
+        self.goto('projects/neuroscan-ai/')
+        self.assertEqual(self.page.locator('#mri-panel-axial').evaluate('(el)=>getComputedStyle(el).animationName'),'none')
+        self.assertEqual(self.page.locator('.project-card').first.evaluate('(el)=>getComputedStyle(el).transitionDuration'),'0s')
+        checks=self.page.evaluate("""() => {
+          const parse = value => value.match(/[0-9.]+/g).map(Number);
+          const composite = (front,back) => { const alpha=front[3]??1; return [0,1,2].map(i=>front[i]*alpha+back[i]*(1-alpha)); };
+          const luminance = rgb => rgb.map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
+          return ['body','.case-hero p:not(.eyebrow)','.mri-panel figcaption','.mri-tabs button[aria-selected=true]','.sample-scope','.button.primary'].map(selector=>{
+            const el=document.querySelector(selector); let chain=[];for(let node=el;node;node=node.parentElement)chain.unshift(node);
+            let bg=[8,13,16];for(const node of chain)bg=composite(parse(getComputedStyle(node).backgroundColor),bg);
+            const foreground=parse(getComputedStyle(el).color);const [light,dark]=[luminance(foreground),luminance(bg)].sort((a,b)=>b-a);
+            return {selector,ratio:(light+.05)/(dark+.05)};
+          });
+        }""")
+        for check in checks:self.assertGreaterEqual(check['ratio'],4.5,str(check))
 
 if __name__=='__main__':unittest.main(verbosity=2)
