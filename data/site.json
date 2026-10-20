@@ -1,0 +1,17 @@
+{
+  "name": "Navnit Kumar Yadav",
+  "shortName": "Navnit",
+  "role": "AI / ML engineer · learning by building",
+  "email": "yadavnv1526@gmail.com",
+  "github": "https://github.com/navnit-ky03",
+  "siteUrl": "",
+  "about": {
+    "intro": "I’m Navnit, a curious AI/ML engineer and final-year B.Tech CSE (Data Science) student at IILM University, Greater Noida.",
+    "paragraphs": [
+      "I learn by building systems, finding where they break, and working through the details. I’m interested in the space between a promising model and a useful application: retrieval, data quality, evaluation, APIs, and the experience on the other side of the screen.",
+      "My projects explore agentic workflows, self-correcting RAG, predictive machine learning, and 3D computer vision. They’ve given me different ways to approach the same question: how can a system make a useful decision, and how do we know when to trust it?",
+      "I enjoy breaking a complex problem into smaller pieces, testing an idea, and making the next version more thoughtful. I’m continuing to explore how language models can work with deterministic tools, how retrieval systems handle uncertain evidence, and how ML applications communicate their limitations."
+    ],
+    "exploring": ["Agentic workflows with deterministic tools", "Grounded retrieval and bounded self-correction", "Evaluation for ML and 3D vision", "Clear, useful interfaces for technical systems"]
+  }
+}

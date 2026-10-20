@@ -1,0 +1,619 @@
+[
+  {
+    "id": "self-corrective-rag",
+    "title": "Self-Corrective RAG Engine",
+    "eyebrow": "An answer should earn your trust.",
+    "category": "AI & agents",
+    "tags": [
+      "RAG",
+      "LLM evaluation",
+      "API"
+    ],
+    "featured": true,
+    "published": true,
+    "description": "A retrieval assistant that checks relevance, grounding, and usefulness before returning an answer.",
+    "problem": "A retrieved document is not automatically a useful source. A fluent answer can still miss the question or go beyond the evidence.",
+    "solution": "Route the question, retrieve context when needed, evaluate the evidence, and run a bounded correction path before returning a response or fallback.",
+    "features": [
+      "Conditional retrieval and intent routing",
+      "Relevant, grounded, and useful answer checks",
+      "Bounded correction and conversational thread state",
+      "Rate-limited, non-streaming FastAPI integration"
+    ],
+    "skills": [
+      "python",
+      "langgraph",
+      "pinecone",
+      "gemini",
+      "groq",
+      "fastapi"
+    ],
+    "github": "https://github.com/navnit-ky03/self_rag_engine/tree/v2.0.0",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/self_rag_engine/v2.0.0/README.md",
+    "source": "self_rag_engine · v2.0.0 · README.md, main.py, schemas.py",
+    "sourceStatus": "Repository sources checked via GitHub, 20 Oct 2026",
+    "demo": null,
+    "metrics": [
+      {
+        "label": "Local successful-answer latency",
+        "value": "9.09–9.70 s",
+        "note": "README-reported local observations on four questions; not a production latency guarantee."
+      },
+      {
+        "label": "Local fallback observation",
+        "value": "~4.48 s",
+        "note": "README-reported single fallback observation; not a service-level objective."
+      }
+    ],
+    "architecture": [
+      [
+        "Question",
+        "A question and stable thread ID enter the non-streaming /chat API."
+      ],
+      [
+        "Route",
+        "Conditional intent routing decides whether retrieval is needed."
+      ],
+      [
+        "Retrieve",
+        "Pinecone retrieves indexed context using Gemini embeddings."
+      ],
+      [
+        "Verify + correct",
+        "LangGraph checks relevance, grounding, and usefulness; correction is bounded."
+      ],
+      [
+        "Answer or fallback",
+        "The API returns answer text. Pipeline exceptions can return HTTP 503."
+      ]
+    ],
+    "challenges": [
+      [
+        "Avoiding unconditional retrieval",
+        "Conditional routes use retrieval when the question needs project evidence."
+      ],
+      [
+        "Containing correction loops",
+        "Bounded correction prevents unending retries when evidence is insufficient."
+      ],
+      [
+        "Separating service and model health",
+        "GET / reports service status. Only a real chat request exercises downstream AI services."
+      ]
+    ],
+    "limitations": [
+      "Verification reduces risk; it does not establish zero hallucinations.",
+      "MemorySaver is process-local; server restarts can reset conversational memory.",
+      "Render may cold-start. API requests are rate-limited to 10 per minute per IP.",
+      "The experimental streaming route is not used by this portfolio."
+    ],
+    "questions": [
+      "How does Navnit’s RAG engine check whether an answer is grounded?",
+      "What are the trade-offs of process-local conversation memory?"
+    ],
+    "visual": "rag"
+  },
+  {
+    "id": "neuroscan-ai",
+    "title": "NeuroScan AI",
+    "eyebrow": "From MRI slices to a spatial picture.",
+    "category": "ML & vision",
+    "tags": [
+      "3D segmentation",
+      "Medical imaging",
+      "Inference"
+    ],
+    "featured": true,
+    "published": true,
+    "description": "A 3D brain-tumor segmentation pipeline with interactive slice views and volumetric estimates.",
+    "problem": "Brain MRI is a volume, not a single image. Full-volume processing is expensive, and 2D views can lose spatial relationships.",
+    "solution": "Use a MONAI 3D U-Net with patch-based training and sliding-window inference, then explore the predicted region in three anatomical views.",
+    "features": [
+      "FLAIR MRI input and 128³ patch processing",
+      "Axial, coronal, and sagittal slice exploration",
+      "Volumetric tumor estimation and NIfTI export",
+      "ONNX model export and inference"
+    ],
+    "skills": [
+      "python",
+      "pytorch",
+      "monai",
+      "onnx",
+      "streamlit"
+    ],
+    "github": "https://github.com/navnit-ky03/BRAIN_TUMOR_SEGMENTATION",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/BRAIN_TUMOR_SEGMENTATION/main/README.md",
+    "source": "BRAIN_TUMOR_SEGMENTATION · README.md; owner validation attestation in implementation specification",
+    "sourceStatus": "README checked via GitHub, 20 Oct 2026; validation result is owner-reported",
+    "demo": {
+      "url": "https://braintumorsegmentationmri.streamlit.app/",
+      "status": "unverified",
+      "source": "Recorded in the original frontend; availability not verified"
+    },
+    "metrics": [
+      {
+        "label": "Best validation Dice · owner-reported",
+        "value": "0.8842",
+        "note": "88.42%, reported by the owner/developer after more than two days of experimentation and 24+ hours of compute. Not independently substantiated by checked README/logs; not clinical validation."
+      }
+    ],
+    "architecture": [
+      [
+        "FLAIR volume",
+        "Upload a 3D NIfTI MRI volume."
+      ],
+      [
+        "Prepare patches",
+        "Prepare spatial patches and transforms for the segmentation model."
+      ],
+      [
+        "3D U-Net",
+        "MONAI/PyTorch predicts segmentation with spatial context."
+      ],
+      [
+        "Sliding-window inference",
+        "Process the volume in overlapping 128³ windows; ONNX supports exported inference."
+      ],
+      [
+        "Explore + export",
+        "Inspect three slice planes, estimate volume, and export NIfTI masks."
+      ]
+    ],
+    "challenges": [
+      [
+        "Working within memory limits",
+        "Patch processing and sliding-window inference avoid loading a full-volume model pass at once."
+      ],
+      [
+        "Learning sparse tumor regions",
+        "Positive and negative crop sampling balances useful foreground and background examples."
+      ],
+      [
+        "Making output inspectable",
+        "Linked anatomical views and mask export make predictions easier to examine."
+      ]
+    ],
+    "limitations": [
+      "A research prototype, not a medical diagnostic tool or clinically validated system.",
+      "Validation performance does not establish generalization across scanners or populations.",
+      "No verified frame-rate claim or demo-availability guarantee."
+    ],
+    "questions": [
+      "Why does NeuroScan use sliding-window inference?",
+      "What does the owner-reported Dice score tell us about NeuroScan?"
+    ],
+    "visual": "vision"
+  },
+  {
+    "id": "voice-booking",
+    "title": "Agentic Voice Booking Assistant",
+    "eyebrow": "Let language understand. Let tools decide.",
+    "category": "AI & agents",
+    "tags": [
+      "Voice AI",
+      "Workflows",
+      "Deterministic tools"
+    ],
+    "featured": true,
+    "published": true,
+    "description": "A voice-led booking workflow connecting selective retrieval, date validation, and correlated intake records.",
+    "problem": "Voice conversations are flexible; appointment rules are precise. Asking a language model to calculate dates or enforce availability is fragile.",
+    "solution": "Separate intent understanding from deterministic date and availability checks. Carry an intake_id from the call into the follow-up form to update the same record.",
+    "features": [
+      "Voice-led booking across three clinic branches",
+      "Selective Pinecone FAQ retrieval",
+      "Deterministic date/availability validation",
+      "Correlated intake forms, cancellation workflows, and model fallback"
+    ],
+    "skills": [
+      "n8n",
+      "elevenlabs",
+      "pinecone",
+      "supabase"
+    ],
+    "github": "https://github.com/navnit-ky03/agentic-voice-booking-assistant",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/agentic-voice-booking-assistant/main/README.md",
+    "source": "agentic-voice-booking-assistant · README.md and workflow documentation",
+    "sourceStatus": "README checked via GitHub, 20 Oct 2026",
+    "demo": null,
+    "metrics": [],
+    "architecture": [
+      [
+        "Voice call",
+        "ElevenLabs captures the caller’s booking intent."
+      ],
+      [
+        "n8n orchestration",
+        "The agent coordinates tools and calls Pinecone for FAQ context when needed."
+      ],
+      [
+        "Validate availability",
+        "A deterministic workflow checks date and availability rules."
+      ],
+      [
+        "Save booking",
+        "Supabase stores a partial record with an intake_id."
+      ],
+      [
+        "Follow-up form",
+        "The form carries intake_id to complete the same record; operational flows handle cancellations."
+      ]
+    ],
+    "challenges": [
+      [
+        "Date arithmetic without prompt trust",
+        "Dedicated validation logic checks dates rather than relying on generated calculations."
+      ],
+      [
+        "Joining phone and form context",
+        "An intake_id correlates partial and completed booking data."
+      ],
+      [
+        "Handling operational changes",
+        "Separate workflows support emergency cancellation and fallback behavior."
+      ]
+    ],
+    "limitations": [
+      "Documented concurrency and slot-synchronization gaps remain.",
+      "Deterministic validation is a design choice, not a guarantee of perfect scheduling accuracy.",
+      "No supported public booking demo is documented."
+    ],
+    "questions": [
+      "Why separate deterministic date tools from the voice booking agent?",
+      "How does intake_id connect voice calls to follow-up forms?"
+    ],
+    "visual": "voice"
+  },
+  {
+    "id": "fraud-detection",
+    "title": "Fraud Detection",
+    "eyebrow": "Rare events. Consequential decisions.",
+    "category": "ML & vision",
+    "tags": [
+      "Classification",
+      "Imbalanced data",
+      "Evaluation"
+    ],
+    "featured": false,
+    "published": true,
+    "description": "A transaction-classification project evaluated through the trade-off between missed fraud and false alarms.",
+    "problem": "Fraud is rare. A high overall accuracy can hide a model that misses the cases that matter, while false alarms create a different cost.",
+    "solution": "Build a classification workflow and inspect its held-out confusion matrix, making recall and false-positive rate visible alongside the model output.",
+    "features": [
+      "Transaction-level fraud classification",
+      "Held-out confusion-matrix analysis",
+      "Recall and false-positive-rate interpretation",
+      "Interactive Streamlit project interface"
+    ],
+    "skills": [
+      "python",
+      "xgboost",
+      "sklearn",
+      "pandas",
+      "streamlit"
+    ],
+    "github": "https://github.com/navnit-ky03/Credit-Card-Scam-Engine",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/Credit-Card-Scam-Engine/main/README.md",
+    "source": "Credit-Card-Scam-Engine · README.md · held-out confusion matrix",
+    "sourceStatus": "README checked via GitHub, 20 Oct 2026",
+    "demo": {
+      "url": "https://credit-card-scam-engine.streamlit.app/",
+      "status": "unverified",
+      "source": "GitHub repository homepage; live app not verified"
+    },
+    "metrics": [
+      {
+        "label": "Holdout recall",
+        "value": "85.19%",
+        "note": "Derived from README-reported TP=23 and FN=4: 23/27. Evaluation was not independently rerun."
+      },
+      {
+        "label": "Holdout false-positive rate",
+        "value": "0.0334%",
+        "note": "Derived from README-reported FP=10 and TN=29,963: 10/29,973. No production fraud-detection guarantee."
+      }
+    ],
+    "architecture": [
+      [
+        "Transaction data",
+        "Start with the project’s transaction dataset."
+      ],
+      [
+        "Prepare features",
+        "Apply the training workflow’s preprocessing."
+      ],
+      [
+        "Classify",
+        "Use the saved classification pipeline to score transactions."
+      ],
+      [
+        "Evaluate",
+        "Inspect TN 29,963; FP 10; FN 4; TP 23 from the reported holdout."
+      ],
+      [
+        "Inspect result",
+        "Present the model result and evaluation context in Streamlit."
+      ]
+    ],
+    "challenges": [
+      [
+        "Evaluating rare events",
+        "Recall and false-positive rate expose behavior hidden by overall accuracy."
+      ],
+      [
+        "Communicating different error costs",
+        "The case study keeps missed fraud separate from unnecessary alarms."
+      ]
+    ],
+    "limitations": [
+      "Reported holdout results do not establish live financial performance.",
+      "Rare positive cases make evaluation sensitive to the split and decision threshold.",
+      "Candidate demo is recorded but has not been functionally verified."
+    ],
+    "questions": [
+      "Why is accuracy alone misleading for Navnit’s fraud detection project?",
+      "How are fraud recall and false-positive rate calculated?"
+    ],
+    "visual": "fraud"
+  },
+  {
+    "id": "customer-value",
+    "title": "Customer CLV & Churn",
+    "eyebrow": "Who might leave? What might they be worth?",
+    "category": "ML & vision",
+    "tags": [
+      "Churn prediction",
+      "Regression",
+      "Customer analytics"
+    ],
+    "featured": false,
+    "published": true,
+    "description": "Paired churn classification and customer-value regression, with separate evaluation for each task.",
+    "problem": "Retention combines two questions: which customers may leave, and what future value they represent. One score cannot answer both.",
+    "solution": "Use distinct classification and regression models, then present customer risk and estimated value with task-specific evaluation.",
+    "features": [
+      "Churn probability and classification",
+      "Customer lifetime-value regression",
+      "Saved evaluation report for both tasks",
+      "Interactive customer-scoring interface",
+      "Decoupled FastAPI/Streamlit architecture with batch prediction"
+    ],
+    "skills": [
+      "python",
+      "xgboost",
+      "sklearn",
+      "pandas",
+      "streamlit",
+      "fastapi"
+    ],
+    "github": "https://github.com/navnit-ky03/Customer-Lifetime-Value",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/Customer-Lifetime-Value/main/README.md",
+    "source": "Customer-Lifetime-Value · data_files/evaluation_report.txt",
+    "sourceStatus": "Saved evaluation report checked via GitHub, 20 Oct 2026",
+    "demo": {
+      "url": "https://customer-lifetime-value-ky03.streamlit.app/",
+      "status": "unverified",
+      "source": "GitHub repository homepage; live app not verified"
+    },
+    "metrics": [
+      {
+        "label": "Churn ROC-AUC",
+        "value": "0.9790",
+        "note": "Saved evaluation_report.txt; accuracy 0.9209, precision 0.8934, recall 0.8879, F1 0.8906. Not independently rerun."
+      },
+      {
+        "label": "CLV R²",
+        "value": "0.9462",
+        "note": "Saved evaluation_report.txt; dataset-specific regression evaluation."
+      },
+      {
+        "label": "CLV MAE / RMSE",
+        "value": "$447.32 / $912.80",
+        "note": "Saved evaluation_report.txt; these errors describe the report’s evaluation set, not future customer-value guarantees."
+      }
+    ],
+    "architecture": [
+      [
+        "Customer features",
+        "Prepare the feature inputs used by the project models."
+      ],
+      [
+        "Shared preparation",
+        "Apply the saved preprocessing workflow."
+      ],
+      [
+        "Churn classifier",
+        "One model branch estimates churn likelihood as a classification task."
+      ],
+      [
+        "CLV regressor",
+        "A separate model branch predicts customer lifetime value; it does not depend on the classifier output."
+      ],
+      [
+        "Decision view",
+        "Inspect both outputs with their distinct evaluation context."
+      ]
+    ],
+    "challenges": [
+      [
+        "Keeping objectives distinct",
+        "Classification and regression use different outputs and evaluation measures."
+      ],
+      [
+        "Avoiding stale result claims",
+        "This case study uses the saved evaluation report rather than older frontend numbers."
+      ]
+    ],
+    "limitations": [
+      "Results are report-sourced; training and evaluation were not independently rerun.",
+      "Customer behavior and model error may change across populations and time.",
+      "Predictions inform analysis and are not guaranteed future revenue."
+    ],
+    "questions": [
+      "Why does Navnit’s customer project use two separate models?",
+      "What do the saved CLV evaluation errors mean?"
+    ],
+    "visual": "customer"
+  },
+  {
+    "id": "delivery-analytics",
+    "title": "Delivery Analytics",
+    "eyebrow": "Make operations easier to read.",
+    "category": "Data & analytics",
+    "tags": [
+      "Dashboards",
+      "Regression",
+      "Operations"
+    ],
+    "featured": false,
+    "published": true,
+    "description": "Operational dashboards and a delivery-time regression workflow connecting exploration with prediction.",
+    "problem": "Delivery records describe a changing operation. Teams need to explore patterns before deciding whether a time prediction is useful.",
+    "solution": "Combine multipage Streamlit and Plotly exploration with an XGBoost regression workflow, keeping visual analysis and predictive evaluation distinct.",
+    "features": [
+      "Multipage operational analytics",
+      "Interactive Plotly views",
+      "XGBoost delivery-time regression",
+      "Repository evaluation script"
+    ],
+    "skills": [
+      "python",
+      "xgboost",
+      "pandas",
+      "plotly",
+      "streamlit"
+    ],
+    "github": "https://github.com/navnit-ky03/delivery_analytics_engine",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/delivery_analytics_engine/main/README.md",
+    "source": "delivery_analytics_engine · README.md and ML_FILES/eval.py",
+    "sourceStatus": "README and evaluation script checked via GitHub, 20 Oct 2026",
+    "demo": {
+      "url": "https://delivery-analytics-engine.streamlit.app/",
+      "status": "unverified",
+      "source": "GitHub repository homepage; live app not verified"
+    },
+    "metrics": [],
+    "architecture": [
+      [
+        "Delivery records",
+        "Load the project’s operational dataset."
+      ],
+      [
+        "Prepare + explore",
+        "Prepare data and examine operational patterns."
+      ],
+      [
+        "Dashboard views",
+        "Streamlit pages use Plotly for interactive analysis."
+      ],
+      [
+        "Regression",
+        "XGBoost estimates delivery time from the model features."
+      ],
+      [
+        "Evaluate",
+        "An evaluation script exists; no checked saved-results artifact substantiates the former frontend metrics."
+      ]
+    ],
+    "challenges": [
+      [
+        "Connecting analysis to prediction",
+        "Exploration provides context for the regression output."
+      ],
+      [
+        "Keeping evidence honest",
+        "Numerical performance and city-count claims are withheld until confirmed from reproducible artifacts."
+      ]
+    ],
+    "limitations": [
+      "The previous R², MAE, and RMSE claims are not supported by a checked saved-results artifact.",
+      "README and old frontend city counts conflict; this page does not assert a count.",
+      "Dashboard observations and predictions depend on the underlying dataset."
+    ],
+    "questions": [
+      "How does the delivery project combine dashboards and machine learning?",
+      "Why are numerical delivery-model metrics withheld?"
+    ],
+    "visual": "delivery"
+  },
+  {
+    "id": "lecture-rag",
+    "title": "Multimodal Lecture RAG",
+    "eyebrow": "Find the moment behind the answer.",
+    "category": "AI & agents",
+    "tags": [
+      "Transcription",
+      "Retrieval",
+      "Citations"
+    ],
+    "featured": false,
+    "published": true,
+    "description": "Lecture transcription and retrieval with timestamp citations that help a learner return to the source.",
+    "problem": "A useful lecture explanation may be buried in a long recording. A summary alone does not help a learner locate the original context.",
+    "solution": "Transcribe lecture content, retrieve transcript passages, and synthesize answers with timestamp references back to the lecture.",
+    "features": [
+      "Whisper transcription with timestamps",
+      "Transcript chunking and embedding workflow",
+      "Question-based transcript retrieval",
+      "Gemini answer synthesis with source timestamps"
+    ],
+    "skills": [
+      "python",
+      "whisper",
+      "gemini",
+      "streamlit"
+    ],
+    "github": "https://github.com/navnit-ky03/rag_based_teaching_model",
+    "readme": "https://raw.githubusercontent.com/navnit-ky03/rag_based_teaching_model/main/README.md",
+    "source": "rag_based_teaching_model · README.md and app.py",
+    "sourceStatus": "README and app.py checked via GitHub, 20 Oct 2026",
+    "demo": {
+      "url": "https://rag-assistant-model.streamlit.app/",
+      "status": "unverified",
+      "source": "GitHub repository homepage; live app not verified"
+    },
+    "metrics": [],
+    "architecture": [
+      [
+        "Lecture input",
+        "Start with lecture media for the transcription workflow."
+      ],
+      [
+        "Transcribe",
+        "Whisper produces transcript segments with timestamps."
+      ],
+      [
+        "Index transcript",
+        "Chunk and embed the transcript for retrieval."
+      ],
+      [
+        "Retrieve",
+        "Find context for the learner’s question; embedding consistency needs reconciliation."
+      ],
+      [
+        "Cited answer",
+        "Gemini synthesizes an answer with timestamp references."
+      ]
+    ],
+    "challenges": [
+      [
+        "Connecting answers to source moments",
+        "Timestamp references make the original explanation easier to revisit."
+      ],
+      [
+        "Reconciling embedding implementations",
+        "README describes Gemini embeddings; current app.py requests Hugging Face BAAI/bge-m3 query embeddings. Deployment consistency is unverified."
+      ]
+    ],
+    "limitations": [
+      "The README/code embedding mismatch must be reconciled before claiming a consistent deployed retrieval space.",
+      "Transcription and retrieval errors can affect answer quality.",
+      "No checked benchmark supports sub-second end-to-end retrieval or answering."
+    ],
+    "questions": [
+      "How do timestamp citations help the lecture RAG project?",
+      "What embedding mismatch is documented in the lecture project?"
+    ],
+    "visual": "lecture"
+  }
+]

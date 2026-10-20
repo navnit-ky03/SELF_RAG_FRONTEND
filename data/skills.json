@@ -1,0 +1,20 @@
+[
+  {"id":"python","name":"Python","category":"Engineering","description":"Model pipelines, data processing, and API services."},
+  {"id":"langgraph","name":"LangGraph","category":"AI & agents","description":"Conditional routing, evaluation, and bounded correction."},
+  {"id":"pinecone","name":"Pinecone","category":"AI & agents","description":"Vector retrieval for grounded answers and workflow context."},
+  {"id":"groq","name":"Groq","category":"AI & agents","description":"LLM inference behind the self-corrective RAG service."},
+  {"id":"gemini","name":"Gemini","category":"AI & agents","description":"Embeddings and answer synthesis in retrieval projects."},
+  {"id":"n8n","name":"n8n","category":"AI & agents","description":"Voice booking orchestration and operational workflows."},
+  {"id":"elevenlabs","name":"ElevenLabs","category":"AI & agents","description":"Voice interaction in the appointment booking workflow."},
+  {"id":"pytorch","name":"PyTorch","category":"ML & vision","description":"Training a 3D brain-tumor segmentation model."},
+  {"id":"monai","name":"MONAI","category":"ML & vision","description":"Medical-imaging transforms and 3D U-Net inference."},
+  {"id":"onnx","name":"ONNX Runtime","category":"ML & vision","description":"Exported segmentation inference outside the training stack."},
+  {"id":"xgboost","name":"XGBoost","category":"ML & vision","description":"Predictive models for customers and delivery times."},
+  {"id":"sklearn","name":"scikit-learn","category":"ML & vision","description":"Tabular modeling, preprocessing, and evaluation."},
+  {"id":"pandas","name":"pandas","category":"Data & apps","description":"Tabular data preparation and analysis."},
+  {"id":"plotly","name":"Plotly","category":"Data & apps","description":"Interactive operational and model visualizations."},
+  {"id":"streamlit","name":"Streamlit","category":"Data & apps","description":"Interactive interfaces for model and analytics projects."},
+  {"id":"supabase","name":"Supabase","category":"Data & apps","description":"Booking records correlated across voice and form steps."},
+  {"id":"fastapi","name":"FastAPI","category":"Engineering","description":"Typed request/response APIs for model-backed services."},
+  {"id":"whisper","name":"Whisper","category":"AI & agents","description":"Lecture transcription with timestamps for retrieval."}
+]
