@@ -12,6 +12,7 @@ import unittest
 from playwright.sync_api import sync_playwright, expect, Error
 
 ROOT = Path(__file__).resolve().parents[1]
+SCREENSHOTS = ROOT / 'docs/screenshots/v2.2'
 PROJECTS = json.loads((ROOT / 'data/projects.json').read_text())
 RENDER = 'https://self-rag-engine.onrender.com/'
 HEADERS = {'access-control-allow-origin':'*','access-control-allow-headers':'content-type','access-control-allow-methods':'GET, POST, OPTIONS'}
@@ -34,7 +35,7 @@ class PortfolioBrowserTests(unittest.TestCase):
         cls.url = f'http://127.0.0.1:{cls.server.server_port}/'
         cls.playwright = sync_playwright().start()
         cls.browser = cls.playwright.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
-        (ROOT / 'docs/screenshots').mkdir(parents=True,exist_ok=True)
+        SCREENSHOTS.mkdir(parents=True,exist_ok=True)
     @classmethod
     def tearDownClass(cls):
         cls.browser.close(); cls.playwright.stop(); cls.server.shutdown(); cls.server.server_close()
@@ -86,7 +87,7 @@ class PortfolioBrowserTests(unittest.TestCase):
     def capture_component(self,selector,filename):
         # Exclude fixed navigation outside the component from long element captures.
         style=self.page.add_style_tag(content='.site-header,.skip-link,#scrollProgress {visibility:hidden!important}')
-        try:self.page.locator(selector).screenshot(path=str(ROOT/'docs/screenshots'/filename))
+        try:self.page.locator(selector).screenshot(path=str(SCREENSHOTS/filename))
         finally:style.evaluate('(el)=>el.remove()')
     def submit(self,text='Explain the RAG engine'):
         self.page.locator('#heroChatInput').fill(text)
@@ -256,23 +257,23 @@ class PortfolioBrowserTests(unittest.TestCase):
         expect(page.locator('#mainNav').get_by_role('link',name='Skills',exact=True)).to_be_visible()
         context.close()
         self.goto()
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/home-desktop.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'home-desktop.png'),full_page=True)
         self.capture_component('#heroChatConsole','home-chat-desktop.png')
         self.page.set_viewport_size({'width':375,'height':812})
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/home-mobile.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'home-mobile.png'),full_page=True)
         self.capture_component('#heroChatConsole','home-chat-mobile.png')
         self.goto('skills/?skill=langgraph')
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/skills-mobile.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'skills-mobile.png'),full_page=True)
         self.goto('projects/neuroscan-ai/')
         self.capture_component('#mri-gallery','mri-gallery-mobile.png')
         self.page.set_viewport_size({'width':1440,'height':1000})
         self.goto('projects/neuroscan-ai/')
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/neuroscan-desktop.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'neuroscan-desktop.png'),full_page=True)
         self.capture_component('#mri-gallery','mri-gallery-desktop.png')
         self.goto('contact/')
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/contact-desktop.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'contact-desktop.png'),full_page=True)
         self.page.set_viewport_size({'width':375,'height':812})
-        self.page.screenshot(path=str(ROOT/'docs/screenshots/contact-mobile.png'),full_page=True)
+        self.page.screenshot(path=str(SCREENSHOTS/'contact-mobile.png'),full_page=True)
 
     def test_15_repository_prefix_legacy_links_contact_and_keyboard(self):
         self.goto('SELF_RAG_FRONTEND/projects/neuroscan-ai/')
@@ -310,13 +311,16 @@ class PortfolioBrowserTests(unittest.TestCase):
                 button=self.page.locator('#heroSuggestions [data-question]').nth(index)
                 expect(button).to_have_attribute('data-question',prompt['question'])
                 expect(button).to_contain_text(prompt['label'])
+                self.page.locator('#heroSuggestionToggle').click()
                 button.click()
                 expect(self.page.locator('#heroChatBody .msg.bot')).to_have_count(len(self.posts)+1)
                 self.assertEqual(self.posts[-1]['question'],prompt['question'])
                 self.assertEqual(set(self.posts[-1]),{'question','thread_id'})
                 expect(self.page.locator('#chatWindow')).to_be_hidden()
+            self.page.locator('#heroSuggestionToggle').click()
             more.focus();self.page.keyboard.press('Enter')
             expect(more).to_be_focused()
+            self.page.locator('#heroSuggestionToggle').click()
         self.assertEqual(len(self.posts),10)
         self.assertEqual(len({post['thread_id'] for post in self.posts}),1)
         expect(self.page.locator('#heroChatBody .msg.user')).to_have_count(10)
@@ -329,6 +333,7 @@ class PortfolioBrowserTests(unittest.TestCase):
             buttons=self.page.locator('#floatingSuggestions [data-question]')
             expect(buttons).to_have_count(min(4,len(prompts[key])))
             expect(buttons.first).to_have_attribute('aria-label',prompts[key][0]['question'])
+            self.page.locator('#floatingSuggestionToggle').click()
             buttons.first.click()
             expect(self.page.locator('#chatBody .msg.bot')).to_have_count(index+2)
             self.assertEqual(self.posts[-1]['question'],prompts[key][0]['question'])
@@ -406,15 +411,144 @@ class PortfolioBrowserTests(unittest.TestCase):
         expect(page.locator('#chatWindow')).to_be_visible()
         page.locator('#chatClose').click();expect(page.locator('#chatWindow')).to_be_hidden()
         touch.close()
+    def test_22_suggestion_disclosures_keyboard_and_transcript_space(self):
+        self.goto()
+        for kind in ['hero','floating']:
+            if kind=='floating':self.open_floating()
+            view=self.page.locator(f'[data-chat-view={kind}]')
+            toggle=view.locator('[data-suggestion-toggle]');panel=view.locator('[data-suggestion-panel]')
+            expect(toggle).to_have_attribute('aria-expanded','false');expect(panel).to_be_hidden()
+            self.assertEqual(toggle.get_attribute('aria-controls'),panel.get_attribute('id'))
+            self.assertLessEqual(view.locator('.chat-suggestions').bounding_box()['height'],50)
+            before=view.locator('.chat-body').bounding_box()['height']
+            toggle.focus();self.page.keyboard.press('Enter')
+            expect(toggle).to_have_attribute('aria-expanded','true');expect(panel).to_be_visible()
+            if kind=='floating':self.assertGreater(before-view.locator('.chat-body').bounding_box()['height'],70)
+            more=view.locator('[data-more-questions]')
+            more.focus();self.page.keyboard.press('Enter');expect(more).to_be_focused()
+            self.assertEqual(self.posts,[])
+            self.page.keyboard.press('Escape')
+            expect(panel).to_be_hidden();expect(toggle).to_be_focused()
+            toggle.press('Space');expect(panel).to_be_visible()
+            toggle.press('Space');expect(panel).to_be_hidden()
+            self.assertEqual(self.posts,[])
+        expect(self.page.locator('#chatWindow')).to_be_visible()
+        self.page.keyboard.press('Escape');expect(self.page.locator('#chatWindow')).to_be_hidden()
+
+    def test_23_submission_collapses_suggestions_and_retains_focus(self):
+        self.goto()
+        toggle=self.page.locator('#heroSuggestionToggle');panel=self.page.locator('#heroSuggestionPanel')
+        toggle.click();self.page.locator('#heroChatInput').press('Enter')
+        expect(panel).to_be_visible();self.assertEqual(self.posts,[])
+        self.submit('Typed with suggestions open')
+        expect(panel).to_be_hidden();expect(toggle).to_have_attribute('aria-expanded','false')
+        expect(self.page.locator('#heroChatBody')).to_contain_text('A grounded answer')
+        toggle.click();chip=self.page.locator('#heroSuggestions [data-question]').first
+        intended=chip.get_attribute('data-question');chip.click()
+        expect(panel).to_be_hidden();expect(self.page.locator('#heroChatInput')).to_be_focused()
+        expect(self.page.locator('#heroChatBody .msg.bot')).to_have_count(3)
+        self.assertEqual([post['question'] for post in self.posts],['Typed with suggestions open',intended])
+        self.open_floating();self.page.locator('#floatingSuggestionToggle').click()
+        self.mode=503
+        self.page.locator('#floatingSuggestions [data-question]').first.click()
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_hidden()
+        expect(self.page.locator('#chatInput')).to_be_focused()
+        expect(self.page.locator('#chatBody .chat-error')).to_be_visible()
+        self.page.locator('#floatingSuggestionToggle').click();self.mode='success'
+        self.page.locator('#chatBody .chat-error button').click()
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_hidden()
+        expect(self.page.locator('#chatBody .msg.bot')).to_have_count(4)
+        self.assertEqual(len(self.posts),4)
+        self.assertEqual(self.posts[-1],self.posts[-2])
+        expect(self.page.locator('#chatBody .msg.user')).to_have_count(3)
+
+    def test_24_reopening_during_request_keeps_lock_and_drafts(self):
+        self.goto();self.open_floating()
+        self.page.locator('#chatInput').fill('Preserved draft');self.page.locator('#chatClose').click()
+        self.mode='hold';self.submit('A pending request')
+        toggle=self.page.locator('#heroSuggestionToggle');toggle.click()
+        expect(toggle).to_be_enabled();expect(self.page.locator('#heroSuggestionPanel')).to_be_visible()
+        for chip in self.page.locator('#heroSuggestions [data-question]').all():expect(chip).to_be_disabled()
+        self.page.locator('[data-chat-view=hero] [data-more-questions]').click()
+        for chip in self.page.locator('#heroSuggestions [data-question]').all():expect(chip).to_be_disabled()
+        self.page.locator('#heroChatInput').fill('Next draft');self.page.locator('#heroChatInput').press('Enter')
+        expect(self.page.locator('#heroSuggestionPanel')).to_be_visible()
+        self.assertEqual(len(self.posts),1)
+        self.open_floating();expect(self.page.locator('#chatInput')).to_have_value('Preserved draft')
+        self.page.locator('#floatingSuggestionToggle').click()
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_visible()
+        self.held[-1].fulfill(status=200,headers=HEADERS,json={'answer':'Completed once'})
+        expect(self.page.locator('#chatBody')).to_contain_text('Completed once')
+        expect(self.page.locator('#heroChatInput')).to_have_value('Next draft')
+        expect(self.page.locator('#chatInput')).to_have_value('Preserved draft')
+        expect(self.page.locator('#floatingSuggestions [data-question]').first).to_be_enabled()
+        self.assertEqual(len(self.posts),1)
+
+    def test_25_bounded_suggestions_and_visible_composer_at_all_sizes(self):
+        for width,height in [(320,480),(320,812),(375,812),(768,900),(1440,1000)]:
+            with self.subTest(width=width,height=height):
+                self.page.set_viewport_size({'width':width,'height':height})
+                self.goto('contact/');self.open_floating()
+                toggle=self.page.locator('#floatingSuggestionToggle')
+                for expanded in [False,True]:
+                    if expanded:toggle.click()
+                    panel=self.page.locator('#chatWindow').bounding_box()
+                    for selector in ['#chatInput','#chatWindow .send-button','#floatingSuggestionToggle']:
+                        box=self.page.locator(selector).bounding_box()
+                        self.assertGreaterEqual(box['y'],panel['y']-1,selector)
+                        self.assertLessEqual(box['y']+box['height'],min(panel['y']+panel['height'],height)+1,selector)
+                        self.assertGreaterEqual(box['height'],44,selector)
+                    self.assertGreaterEqual(self.page.locator('#chatBody').bounding_box()['height'],70)
+                    transcript=self.page.locator('#chatBody').bounding_box()
+                    suggestions=self.page.locator('#chatWindow .chat-suggestions').bounding_box()
+                    form=self.page.locator('#chatWindow .chat-form').bounding_box()
+                    self.assertLessEqual(transcript['y']+transcript['height'],suggestions['y']+1)
+                    self.assertLessEqual(suggestions['y']+suggestions['height'],form['y']+1)
+                    if expanded:
+                        disclosure=self.page.locator('#floatingSuggestionPanel')
+                        self.assertLessEqual(disclosure.bounding_box()['height'],151)
+                        self.assertIn(disclosure.evaluate('(el)=>getComputedStyle(el).overflowY'),['auto','scroll'])
+                    self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+                if width==320 and height==480:
+                    self.page.screenshot(path=str(SCREENSHOTS/'floating-chat-320x480-expanded.png'))
+
+    def test_26_refinement_review_screenshots(self):
+        # Start each review route with a fresh transcript; persistence is tested above.
+        self.page.add_init_script("sessionStorage.removeItem('navnit_portfolio_chat_v2')")
+        for width,height,label in [(1440,1000,'desktop'),(375,812,'mobile')]:
+            self.page.set_viewport_size({'width':width,'height':height});self.goto()
+            self.capture_component('#heroChatConsole',f'chat-{label}-collapsed.png')
+            self.page.locator('#heroSuggestionToggle').click()
+            self.capture_component('#heroChatConsole',f'chat-{label}-expanded.png')
+            self.page.locator('#heroSuggestions [data-question]').first.click()
+            expect(self.page.locator('#heroChatBody .msg.bot')).to_have_count(2)
+            self.capture_component('#heroChatConsole',f'chat-{label}-answer.png')
+            self.capture_component('.featured-section',f'featured-projects-{label}.png')
+            self.open_floating()
+            self.page.locator('#chatWindow').screenshot(path=str(SCREENSHOTS/f'floating-chat-{label}-collapsed.png'))
+            self.page.locator('#floatingSuggestionToggle').click()
+            self.page.locator('#chatWindow').screenshot(path=str(SCREENSHOTS/f'floating-chat-{label}-expanded.png'))
+            self.page.locator('#floatingSuggestions [data-question]').first.click()
+            expect(self.page.locator('#chatBody .msg.bot')).to_have_count(3)
+            self.page.locator('#chatWindow').screenshot(path=str(SCREENSHOTS/f'floating-chat-{label}-answer.png'))
+            self.goto('skills/?skill=langgraph')
+            self.page.screenshot(path=str(SCREENSHOTS/f'skills-{label}.png'),full_page=True)
+            selected=self.page.locator('.skill-card[aria-pressed=true]')
+            self.assertIn('Selected',selected.evaluate('(el)=>getComputedStyle(el,"::after").content'))
+            self.goto('projects/self-corrective-rag/')
+            self.capture_component('.case-overview >> nth=0',f'case-study-reading-{label}.png')
+            self.assertEqual(self.page.locator('.decision-card').first.evaluate('(el)=>getComputedStyle(el).boxShadow'),'none')
+
     def test_21_reduced_motion_and_representative_text_contrast(self):
         self.goto('projects/neuroscan-ai/')
+        self.open_floating();self.page.locator('#floatingSuggestionToggle').click()
         self.assertEqual(self.page.locator('#mri-panel-axial').evaluate('(el)=>getComputedStyle(el).animationName'),'none')
         self.assertEqual(self.page.locator('.project-card').first.evaluate('(el)=>getComputedStyle(el).transitionDuration'),'0s')
         checks=self.page.evaluate("""() => {
           const parse = value => value.match(/[0-9.]+/g).map(Number);
           const composite = (front,back) => { const alpha=front[3]??1; return [0,1,2].map(i=>front[i]*alpha+back[i]*(1-alpha)); };
           const luminance = rgb => rgb.map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
-          return ['body','.case-hero p:not(.eyebrow)','.mri-panel figcaption','.mri-tabs button[aria-selected=true]','.sample-scope','.button.primary'].map(selector=>{
+          return ['body','.case-hero p:not(.eyebrow)','.mri-panel figcaption','.mri-tabs button[aria-selected=true]','.sample-scope','.button.primary','.suggestion-toggle','.chat-chips .chip','.msg.bot','.chat-disclaimer'].map(selector=>{
             const el=document.querySelector(selector); let chain=[];for(let node=el;node;node=node.parentElement)chain.unshift(node);
             let bg=[8,13,16];for(const node of chain)bg=composite(parse(getComputedStyle(node).backgroundColor),bg);
             const foreground=parse(getComputedStyle(el).color);const [light,dark]=[luminance(foreground),luminance(bg)].sort((a,b)=>b-a);

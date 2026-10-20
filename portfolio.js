@@ -135,6 +135,34 @@ $$('.mri-tabs').forEach(tablist => {
   selectTab(0);
 });
 
+/* Disclosure state belongs to each view; conversation state remains shared.
+   Closing never leaves keyboard focus inside a hidden suggestions panel. */
+function setSuggestionsExpanded(view, expanded, returnToToggle = false) {
+  const panel = view.querySelector('[data-suggestion-panel]');
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  const focusWouldDisappear = !expanded && panel.contains(document.activeElement);
+  panel.hidden = !expanded;
+  toggle.setAttribute('aria-expanded',String(expanded));
+  if (focusWouldDisappear) {
+    const target = returnToToggle ? toggle : view.querySelector('.chat-form input');
+    target.focus({preventScroll:true});
+  }
+}
+function collapseSuggestionsAfterSubmission() {
+  $$('[data-chat-view]').forEach(view => setSuggestionsExpanded(view,false));
+}
+$$('[data-chat-view]').forEach(view => {
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  toggle.addEventListener('click', () => setSuggestionsExpanded(view,toggle.getAttribute('aria-expanded') !== 'true'));
+  view.querySelector('.chat-suggestions').addEventListener('keydown', event => {
+    if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault(); event.stopPropagation();
+      setSuggestionsExpanded(view,false,true);
+      toggle.focus({preventScroll:true});
+    }
+  });
+});
+
 /* Visitor-oriented, page-specific prompts. Pagination changes suggestions only;
    the exact selected question still uses the existing shared request model. */
 $$('[data-chat-view]').forEach(view => {
@@ -416,6 +444,7 @@ async function executeRAGQuery(question, input = null, retryId = null) {
   // Retrying an older failed turn after later messages would contaminate backend
   // thread order. Only the latest unresolved turn is offered in the UI.
   if (retryId && message !== conversation.messages.at(-1)) return;
+  collapseSuggestionsAfterSubmission();
   const generation = ++queryGeneration;
   inFlight = true; activeMessage = message; message.status = 'pending'; delete message.failure;
   if (!retryId) {

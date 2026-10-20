@@ -1,4 +1,4 @@
-# Navnit Kumar Yadav · Portfolio v2.1
+# Navnit Kumar Yadav · Portfolio v2.2
 
 A lightweight, static multipage portfolio with source-backed case studies, an interactive skills explorer, architecture walkthroughs, and two synchronized entry points to the existing RAG assistant. No production framework, runtime package, API key, or backend modification is required.
 
@@ -24,7 +24,7 @@ python -m playwright install chromium
 npm run test:browser
 ```
 
-The test runner defaults to `/usr/bin/chromium`; set `CHROMIUM_PATH` for another path. It starts its own loopback server and mocks all Render/LLM requests. It does not consume LLM quota or verify a deployment. Screenshots are written to `docs/screenshots/`.
+The test runner defaults to `/usr/bin/chromium`; set `CHROMIUM_PATH` for another path. It starts its own loopback server and mocks all Render/LLM requests. It does not consume LLM quota or verify a deployment. Current screenshots are written to `docs/screenshots/v2.2/`; the original `docs/screenshots/` images remain as the v2.1 comparison baseline.
 
 ## Pages and hosting
 
@@ -113,7 +113,7 @@ The approved v2 layout, registry and twelve content routes are preserved. The re
 
 ### Recruiter and contextual suggestions
 
-Edit `data/chat-prompts.json` to change the short button labels and full questions. Home has ten recruiter/client-oriented prompts: four are shown initially, and a keyboard-accessible **More questions** button cycles through manual groups. There is no automatic rotation. The full question appears in the accessible label/tooltip and is sent exactly as stored; no hidden context or qualification is appended.
+Edit `data/chat-prompts.json` to change the short button labels and full questions. Home has ten recruiter/client-oriented prompts: four are in the first expanded group, and a keyboard-accessible **More questions** button cycles through manual groups. There is no automatic rotation. The full question appears in the accessible label/tooltip and is sent exactly as stored; no hidden context or qualification is appended.
 
 The floating assistant uses the current page's context: Home, Projects, NeuroScan, self-corrective RAG, Skills, About or Contact. Other project pages derive their questions from the published registry entry's actual title. Skills retain their individual technology-to-project question controls. Suggestions use the same conversation, session storage, thread ID, request lock, loading states and manual retry as typed questions. Choosing a homepage suggestion uses the visible main assistant. Browsing more suggestions does not send a request or reset history.
 
@@ -139,4 +139,16 @@ Ask AI now occupies reserved header space instead of covering project/skill cont
 
 The panel sizes itself below the header using the available visual viewport and supports internal scrolling on short screens. Tests cover 320, 375, 768 and 1440 pixels, an additional 320×480 panel check, native touch activation, and minimum 44px key controls. Physical device keyboards and screen readers still need owner review.
 
-See `docs/V2_1_REFINEMENT_REVIEW.md` for the current refinement report and screenshot inventory. The original v2 evidence and live-check records are retained in `docs/EVIDENCE.md` and `docs/LIVE_CHECKS.md`.
+See `docs/V2_1_REFINEMENT_REVIEW.md` for the prior refinement report. The original v2 evidence and live-check records are retained in `docs/EVIDENCE.md` and `docs/LIVE_CHECKS.md`.
+
+## Portfolio v2.2 refinements
+
+This refinement starts at `0f944d3` on `feature/portfolio-v2.2`, targeting the protected `feature/portfolio-v2` branch in a separate draft PR. The existing branch and Draft PR #1 remain unchanged. Nothing is merged or deployed.
+
+Green/cyan ambient lighting, dark-glass gradients, reflective upper edges and luminous focus/selected states strengthen interactive surfaces. Technical explanations, evidence, source notes and README content use matte charcoal surfaces, plain text and comfortable line heights. Effects use CSS only; no dependencies or decorative image downloads are added. Mobile reduces blur/shadows, and reduced-motion preferences are preserved. Selected skills also have a visible **Selected** badge and inset bar.
+
+Both chat views start with **Suggested questions** collapsed. Its bulb disclosure has `aria-expanded`, `aria-controls`, and a labelled hidden region. Enter/Space toggle it; Escape within an expanded disclosure closes it and returns focus to the toggle. An accepted typed question, suggestion or retry collapses both views. A disappearing suggestion returns focus to the appropriate input; otherwise focus remains stable. The disclosure stays usable during loading, and expanded questions have an independent scroll boundary. Toggling or paginating never sends a question. Empty or locked submissions do not change disclosure state.
+
+The original shared conversation, drafts, `thread_id`, session storage, request lock, timeout/retry and pre-warming code paths remain intact. Contextual labels/full questions, all project data and deployment URLs, professional availability and original MRI bytes are unchanged. MRI refinements affect only the surrounding console and controls.
+
+See [the v2.2 review](docs/V2_2_REFINEMENT_REVIEW.md) for the file inventory, **35 passing automated tests**, before/after links, current screenshots, accessibility checks and remaining verification limits.
