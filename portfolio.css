@@ -2731,3 +2731,6 @@ nav a[aria-current] {
   .mri-panel { animation: none; }
   .project-card:hover { transform: none; }
 }
+
+.contact-card .availability-label { display: flex; margin-top: 18px; }
+.contact-icon svg { display: block; }
