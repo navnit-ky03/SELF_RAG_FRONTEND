@@ -135,6 +135,34 @@ $$('.mri-tabs').forEach(tablist => {
   selectTab(0);
 });
 
+/* Disclosure state belongs to each view; conversation state remains shared.
+   Closing never leaves keyboard focus inside a hidden suggestions panel. */
+function setSuggestionsExpanded(view, expanded, returnToToggle = false) {
+  const panel = view.querySelector('[data-suggestion-panel]');
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  const focusWouldDisappear = !expanded && panel.contains(document.activeElement);
+  panel.hidden = !expanded;
+  toggle.setAttribute('aria-expanded',String(expanded));
+  if (focusWouldDisappear) {
+    const target = returnToToggle ? toggle : view.querySelector('.chat-form input');
+    target.focus({preventScroll:true});
+  }
+}
+function collapseSuggestionsAfterSubmission() {
+  $$('[data-chat-view]').forEach(view => setSuggestionsExpanded(view,false));
+}
+$$('[data-chat-view]').forEach(view => {
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  toggle.addEventListener('click', () => setSuggestionsExpanded(view,toggle.getAttribute('aria-expanded') !== 'true'));
+  view.querySelector('.chat-suggestions').addEventListener('keydown', event => {
+    if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault(); event.stopPropagation();
+      setSuggestionsExpanded(view,false,true);
+      toggle.focus({preventScroll:true});
+    }
+  });
+});
+
 /* Visitor-oriented, page-specific prompts. Pagination changes suggestions only;
    the exact selected question still uses the existing shared request model. */
 $$('[data-chat-view]').forEach(view => {
@@ -416,6 +444,7 @@ async function executeRAGQuery(question, input = null, retryId = null) {
   // Retrying an older failed turn after later messages would contaminate backend
   // thread order. Only the latest unresolved turn is offered in the UI.
   if (retryId && message !== conversation.messages.at(-1)) return;
+  collapseSuggestionsAfterSubmission();
   const generation = ++queryGeneration;
   inFlight = true; activeMessage = message; message.status = 'pending'; delete message.failure;
   if (!retryId) {
@@ -495,15 +524,40 @@ function positionChatPanel() {
   const viewport = window.visualViewport;
   const top = Math.max(12, $('.site-header').getBoundingClientRect().bottom + 12);
   const available = (viewport?.height || innerHeight) + (viewport?.offsetTop || 0) - top - 12;
+  $('#chatWindow').style.setProperty('--chat-vv-top', `${Math.max(0,viewport?.offsetTop || 0)}px`);
+  $('#chatWindow').style.setProperty('--chat-vv-height', `${Math.max(220,viewport?.height || innerHeight)}px`);
   $('#chatWindow').style.setProperty('--chat-panel-top', `${top}px`);
   $('#chatWindow').style.setProperty('--chat-panel-height', `${Math.max(100,Math.min(620,available))}px`);
+}
+/* Full screen is a reversible presentation mode of the existing shared chat,
+   not another conversation, API request, or persisted thread. */
+let chatFullscreen = false;
+function setChatFullscreen(expanded, focus = true) {
+  const panel = $('#chatWindow');
+  chatFullscreen = Boolean(expanded);
+  panel.classList.toggle('is-fullscreen', chatFullscreen);
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen && !panel.hidden);
+  if (chatFullscreen) panel.setAttribute('aria-modal','true');
+  else panel.removeAttribute('aria-modal');
+  for (const outside of ['.site-header','main','footer']) {
+    const element = $(outside);
+    if (element) element.inert = chatFullscreen && !panel.hidden;
+  }
+  const button = $('#chatExpand');
+  button.setAttribute('aria-pressed', String(chatFullscreen));
+  button.setAttribute('aria-label', chatFullscreen ? 'Exit full screen AI assistant' : 'Expand AI assistant to full screen');
+  button.title = chatFullscreen ? 'Exit full screen' : 'Full screen';
+  button.textContent = chatFullscreen ? '⤢' : '⛶';
+  if (focus && !panel.hidden) button.focus({preventScroll:true});
 }
 function openChat() {
   if ($('#chatWindow').hidden) lastFocusedElement = document.activeElement;
   $('#chatWindow').hidden = false; $('#chatFab').setAttribute('aria-expanded','true');
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen);
   updateLauncherVisibility(); positionChatPanel(); $('#chatInput').focus({preventScroll:true});
 }
 function closeChat() {
+  setChatFullscreen(false, false);
   $('#chatWindow').hidden = true; $('#chatFab').setAttribute('aria-expanded','false');
   if (lastFocusedElement === $('#chatFab')) $('#chatFab').hidden = false;
   else updateLauncherVisibility();
@@ -525,6 +579,12 @@ $('#chatFab').addEventListener('pointerdown', event => {
 $('#chatFab').addEventListener('blur', () => requestAnimationFrame(updateLauncherVisibility));
 $('#chatFab').addEventListener('click', () => { if ($('#chatWindow').hidden) openChat(); else closeChat(); });
 $('#chatClose').addEventListener('click',closeChat);
+$('#chatExpand').addEventListener('click', () => setChatFullscreen(!chatFullscreen));
+$('#heroChatExpand')?.addEventListener('click', () => {
+  // Expand the existing floating view; both views share a thread and transcript.
+  openChat();
+  setChatFullscreen(true);
+});
 document.addEventListener('click', event => {
   const retry = event.target.closest('[data-retry]');
   if (retry) { const saved = conversation.messages.find(m => m.id === retry.dataset.retry); if (saved) executeRAGQuery(saved.text,null,saved.id); return; }
@@ -537,7 +597,21 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-open-chat]')) openChat();
 });
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !$('#chatWindow').hidden) closeChat();
+  if (event.key === 'Escape' && !$('#chatWindow').hidden) {
+    if (chatFullscreen) {
+      event.preventDefault();
+      setChatFullscreen(false);
+    } else closeChat();
+  }
+  if (event.key === 'Tab' && chatFullscreen && !$('#chatWindow').hidden) {
+    const focusable = [...$('#chatWindow').querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')]
+      .filter(el => !el.closest('[hidden]') && el.getClientRects().length);
+    if (focusable.length) {
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
     if ($('#chatWindow').hidden && $('#heroChatInput')) $('#heroChatInput').focus(); else openChat();
