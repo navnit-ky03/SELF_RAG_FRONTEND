@@ -2943,7 +2943,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visibl
 .chat-window.is-fullscreen .chat-disclaimer { flex-shrink:0; }
 body.chat-fullscreen-active { overflow:hidden; }
 @media (max-width:640px) {
-  .chat-window.is-fullscreen { inset:0; top:0; right:0; bottom:0; left:0; --chat-panel-height:100dvh; }
+  .chat-window.is-fullscreen { inset:auto 0 0 0; top:var(--chat-vv-top, 0px); right:0; bottom:auto; left:0; height:var(--chat-vv-height, 100dvh); max-height:var(--chat-vv-height, 100dvh); --chat-panel-height:var(--chat-vv-height, 100dvh); }
   .chat-window.is-fullscreen .chat-card { border-radius:0; }
   .chat-window.is-fullscreen .chat-header { padding:10px 12px; }
   .chat-window.is-fullscreen .chat-body { padding:12px; min-height:0; font-size:12px; }
