@@ -1,0 +1,144 @@
+{
+  "home": [
+    {
+      "label": "Engineer profile",
+      "question": "How would you position Navnit as an AI/ML engineer?"
+    },
+    {
+      "label": "Why hire Navnit?",
+      "question": "Why should we hire Navnit for a Machine Learning or Data Science role?"
+    },
+    {
+      "label": "Engineering strengths",
+      "question": "Which projects best demonstrate Navnit’s engineering capabilities?"
+    },
+    {
+      "label": "Freelance availability",
+      "question": "Does Navnit accept freelance or contract work?"
+    },
+    {
+      "label": "What sets him apart?",
+      "question": "What makes Navnit different from other AI/ML candidates?"
+    },
+    {
+      "label": "End-to-end systems",
+      "question": "Can Navnit build and deploy end-to-end AI systems?"
+    },
+    {
+      "label": "Business automation",
+      "question": "What business processes can Navnit automate?"
+    },
+    {
+      "label": "Strongest skills",
+      "question": "What are Navnit’s strongest technical skills?"
+    },
+    {
+      "label": "Problem-solving style",
+      "question": "How does Navnit approach engineering problems?"
+    },
+    {
+      "label": "Discuss an opportunity",
+      "question": "How can we contact Navnit about an opportunity?"
+    }
+  ],
+  "projects": [
+    {
+      "label": "Technical depth",
+      "question": "Which project demonstrates the most technical depth?"
+    },
+    {
+      "label": "Engineering challenges",
+      "question": "What engineering challenges did Navnit solve?"
+    },
+    {
+      "label": "End-to-end deployment",
+      "question": "Which projects involved end-to-end deployment?"
+    },
+    {
+      "label": "Model evaluation",
+      "question": "How were the models evaluated?"
+    }
+  ],
+  "neuroscan-ai": [
+    {
+      "label": "3D MRI processing",
+      "question": "How does NeuroScan process 3D MRI volumes?"
+    },
+    {
+      "label": "Why a 3D U-Net?",
+      "question": "Why was a 3D U-Net selected for NeuroScan AI?"
+    },
+    {
+      "label": "Understanding Dice",
+      "question": "What does NeuroScan’s reported Dice score represent?"
+    },
+    {
+      "label": "Sliding-window inference",
+      "question": "How does sliding-window inference work in NeuroScan AI?"
+    }
+  ],
+  "self-corrective-rag": [
+    {
+      "label": "Grounded answers",
+      "question": "How does the self-corrective RAG engine reduce unsupported answers?"
+    },
+    {
+      "label": "Conditional retrieval",
+      "question": "How does conditional retrieval work in the self-corrective RAG engine?"
+    },
+    {
+      "label": "Why LangGraph?",
+      "question": "Why use LangGraph for the self-corrective RAG engine?"
+    },
+    {
+      "label": "Insufficient evidence",
+      "question": "What happens when retrieved evidence is insufficient in the self-corrective RAG engine?"
+    }
+  ],
+  "skills": [
+    {
+      "label": "Python in practice",
+      "question": "Which projects demonstrate Python expertise?"
+    },
+    {
+      "label": "LangGraph experience",
+      "question": "How has Navnit used LangGraph?"
+    },
+    {
+      "label": "ML deployment tools",
+      "question": "What technologies has Navnit used to deploy ML systems?"
+    },
+    {
+      "label": "AI engineering skills",
+      "question": "Which skills are most relevant to AI engineering?"
+    }
+  ],
+  "about": [
+    {
+      "label": "What motivates him?",
+      "question": "What motivates Navnit to build AI systems?"
+    },
+    {
+      "label": "Current explorations",
+      "question": "What areas is Navnit currently exploring?"
+    },
+    {
+      "label": "Engineering strengths",
+      "question": "What engineering strengths do Navnit’s projects demonstrate?"
+    }
+  ],
+  "contact": [
+    {
+      "label": "Automation freelancing",
+      "question": "Does Navnit offer automation freelancing?"
+    },
+    {
+      "label": "Discuss an AI project",
+      "question": "How can I discuss an AI automation project with Navnit?"
+    },
+    {
+      "label": "ML / Data Science work",
+      "question": "Is Navnit open to ML or Data Science contract work?"
+    }
+  ]
+}

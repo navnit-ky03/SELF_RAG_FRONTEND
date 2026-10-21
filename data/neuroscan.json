@@ -1,0 +1,46 @@
+{
+  "projectId": "neuroscan-ai",
+  "scan": "BraTS20_Validation_001_flair.nii",
+  "source": "Owner-provided captures from the NeuroScan AI Streamlit application, 20 October 2026",
+  "notes": "assets/neuroscan/ASSET_NOTES.md",
+  "views": [
+    {
+      "id": "axial",
+      "label": "Axial",
+      "slice": 92,
+      "path": "assets/neuroscan/neuroscan_axial_slice92.webp",
+      "width": 240,
+      "height": 240,
+      "sha256": "431b508345b349b452f053afe6436cbfefc77d83b6dd9964319ca68cab67565e",
+      "alt": "Axial FLAIR MRI slice 92 from BraTS20_Validation_001_flair.nii, showing NeuroScan AI’s red model-predicted tumor mask; not ground-truth annotation."
+    },
+    {
+      "id": "coronal",
+      "label": "Coronal",
+      "slice": 128,
+      "path": "assets/neuroscan/neuroscan_coronal_slice128.webp",
+      "width": 975,
+      "height": 690,
+      "sha256": "3ae363c6f30aae7e2b037b3191f4047fd0bc7c153a8384bb88c7b176e3fb6b58",
+      "alt": "Coronal FLAIR MRI slice 128 from BraTS20_Validation_001_flair.nii, showing NeuroScan AI’s red model-predicted tumor mask; not ground-truth annotation."
+    },
+    {
+      "id": "sagittal",
+      "label": "Sagittal",
+      "slice": 108,
+      "path": "assets/neuroscan/neuroscan_sagittal_slice108.webp",
+      "width": 1055,
+      "height": 630,
+      "sha256": "f1442ecf4ffe6c9480c4fe856657409ea6ade743c15b92d15fa1a078dbf65cc3",
+      "alt": "Sagittal FLAIR MRI slice 108 from BraTS20_Validation_001_flair.nii, showing NeuroScan AI’s red model-predicted tumor mask; not ground-truth annotation."
+    }
+  ],
+  "sampleOutput": {
+    "tumorDetected": true,
+    "estimatedVolumeCm3": "122.51",
+    "estimatedBurdenPercent": "7.68",
+    "peakAxialSlice": 92,
+    "dimensions": "240 × 240 × 155"
+  },
+  "interpretation": "Research-model predictions, not ground-truth annotations or clinically validated diagnoses. Not medical advice."
+}

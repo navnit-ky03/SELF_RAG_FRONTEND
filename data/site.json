@@ -1,0 +1,38 @@
+{
+  "name": "Navnit Kumar Yadav",
+  "shortName": "Navnit",
+  "role": "AI/ML Engineer · agentic systems, automation & applied machine learning",
+  "email": "yadavnv1526@gmail.com",
+  "github": "https://github.com/navnit-ky03",
+  "siteUrl": "",
+  "about": {
+    "intro": "I’m Navnit, a curious AI/ML engineer and final-year B.Tech CSE (Data Science) student at IILM University, Greater Noida.",
+    "paragraphs": [
+      "I learn by building systems, finding where they break, and working through the details. I’m interested in the space between a promising model and a useful application: retrieval, data quality, evaluation, APIs, and the experience on the other side of the screen.",
+      "My projects explore agentic workflows, self-correcting RAG, predictive machine learning, and 3D computer vision. They’ve given me different ways to approach the same question: how can a system make a useful decision, and how do we know when to trust it?",
+      "I enjoy breaking a complex problem into smaller pieces, testing an idea, and making the next version more thoughtful. I’m continuing to explore how language models can work with deterministic tools, how retrieval systems handle uncertain evidence, and how ML applications communicate their limitations."
+    ],
+    "exploring": [
+      "Agentic workflows with deterministic tools",
+      "Grounded retrieval and bounded self-correction",
+      "Evaluation for ML and 3D vision",
+      "Clear, useful interfaces for technical systems"
+    ]
+  },
+  "professional": {
+    "identity": "AI/ML Engineer",
+    "positioning": "My practical experience comes from building agentic AI systems, workflow automation, retrieval-augmented generation, end-to-end ML, predictive models, computer vision, API integrations, and model evaluation and deployment.",
+    "automationStatus": "Open to automation freelance work",
+    "automationIntro": "I’m actively interested in automation freelance projects: connecting AI agents, APIs, and practical workflows to help with well-defined business processes.",
+    "services": [
+      "AI-powered workflow automation",
+      "n8n workflows and business process automation",
+      "AI agent and API integrations",
+      "Conversational automation",
+      "Intelligent data-processing workflows"
+    ],
+    "contractPolicy": "ML and Data Science freelance or contract opportunities are considered individually after an email discussion. Share your requirements so we can discuss scope, feasibility, and fit.",
+    "cta": "Discuss an automation project",
+    "confirmedBy": "Owner-confirmed in the Portfolio v2.1 specification, 20 October 2026"
+  }
+}

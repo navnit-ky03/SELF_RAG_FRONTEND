@@ -1,853 +1,641 @@
-/* ==========================================================================
-   NAVNIT KUMAR YADAV - MASTER PORTFOLIO LOGIC
-   ========================================================================== */
+/* Navnit Kumar Yadav · Portfolio v2
+   Buildless browser runtime. All factual content comes from data/*.json. */
+'use strict';
+document.documentElement.classList.add('js');
+const $ = selector => document.querySelector(selector);
+const $$ = selector => [...document.querySelectorAll(selector)];
+const { projects, skills, site, base, suggestions } = JSON.parse($('#site-data').textContent);
 
-const $ = s => document.querySelector(s);
-const EMAIL = 'yadavnv1526@gmail.com';
+/* Keep old portfolio hash links useful after moving to static routes. */
+function legacyRoute() {
+  if (document.body.dataset.page !== 'home') return;
+  const target = { '#projects':'projects/', '#stack':'skills/', '#skills':'skills/', '#about':'about/', '#contact':'contact/' }[location.hash];
+  if (target) location.replace(base + target);
+  if (location.hash === '#flagship') { history.replaceState(null,'','#architecture'); $('#architecture')?.scrollIntoView(); }
+  if (location.hash === '#top' || location.hash === '#home') { history.replaceState(null,'',location.pathname + location.search); window.scrollTo(0,0); }
+}
+legacyRoute();
+window.addEventListener('hashchange', legacyRoute);
 
-/* Configurable FastAPI Backend Endpoint for RAG Chatbot */
-const CHATBOT_API_URL = "https://self-rag-engine.onrender.com/chat";
-
-/* Currently active project selected in modal */
-let currentProject = null;
-
-/* Centralized Real-Time Synchronized Chat History */
-const chatHistory = [
-  {
-    sender: 'bot',
-    prefix: '// system_init',
-    text: "Hi! I'm Navnit's RAG AI assistant. Ask me anything about his projects, experience, or technical stack."
-  }
-];
-
-/* ==========================================================================
-   RENDER COLD-START PRE-WARMER
-   ========================================================================== */
-(async function prewarmRenderBackend() {
-  const HEALTH_URL = "https://self-rag-engine.onrender.com/";
+/* Preserve the existing Render endpoint and page-load pre-warming mechanism. */
+const CHATBOT_API_URL = 'https://self-rag-engine.onrender.com/chat';
+const HEALTH_URL = 'https://self-rag-engine.onrender.com/';
+const pageRequests = new Set();
+let queryGeneration = 0;
+const TIMING = Object.freeze({ healthTimeout: 12000, startupBudget: 60000, chatTimeout: 90000, slowAfter: 12000, healthFreshness: 30000 });
+class RequestError extends Error {
+  constructor(kind, status = 0) { super(kind); this.kind = kind; this.status = status; }
+}
+/* Keep the timeout active while consuming the body, not only until headers arrive. */
+async function fetchWithTimeout(url, options, timeoutMs, consume = response => response) {
+  const controller = new AbortController();
+  pageRequests.add(controller);
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    // Fire background GET request as soon as page loads
-    await fetch(HEALTH_URL, { method: 'GET', mode: 'cors' });
-    console.log('[Pre-warm] Render backend wake-up signal sent successfully.');
-  } catch (err) {
-    console.warn('[Pre-warm] Render backend ping failed or waking up:', err);
-  }
-})();
-
-/* ==========================================================================
-   SPA HASH ROUTER
-   ========================================================================== */
-
-function handleHashRouting() {
-  let hash = window.location.hash || '#home';
-  if (hash === '#top') hash = '#home';
-
-  const targetId = hash.replace('#', '');
-  const sections = document.querySelectorAll('main > section');
-  const navLinks = document.querySelectorAll('#mainNav a');
-
-  let targetFound = false;
-
-  sections.forEach(sec => {
-    if (sec.id === targetId) {
-      sec.classList.add('active-page');
-      targetFound = true;
-    } else {
-      sec.classList.remove('active-page');
-    }
-  });
-
-  if (!targetFound && sections.length > 0) {
-    sections[0].classList.add('active-page');
-  }
-
-  navLinks.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href === hash || (hash === '#home' && href === '#top')) {
-      link.classList.add('on');
-    } else {
-      link.classList.remove('on');
-    }
-  });
-
-  window.scrollTo({ top: 0, behavior: 'instant' });
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return await consume(response);
+  } catch (error) {
+    if (timedOut) throw new RequestError('timeout');
+    if (error instanceof RequestError) throw error;
+    throw new RequestError('network');
+  } finally { clearTimeout(timer); pageRequests.delete(controller); }
 }
-
-window.addEventListener('hashchange', handleHashRouting);
-window.addEventListener('DOMContentLoaded', handleHashRouting);
-
-/* ==========================================================================
-   FLAGSHIP CAROUSEL DATA
-   ========================================================================== */
-
-const F = [
-  {
-    n: 'Agentic Voice Booking Assistant',
-    k: 'n8n · Pinecone · Supabase · ElevenLabs',
-    d: 'An AI receptionist that books appointments across 3 clinic branches by voice, then completes the record through a follow-up form.',
-    nodes: [
-      ['Voice call', 'ElevenLabs runs the voice call and streams user intent to n8n.'],
-      ['AI Agent', 'Agentic RAG: queries Pinecone vectors strictly when FAQ context is needed.'],
-      ['Date_Check', 'A deterministic sub-workflow validates 10-day windows and closed slots, bypassing LLM date math.'],
-      ['Supabase', 'A partial appointment record is saved with a unique intake_id correlation key.'],
-      ['Intake form', 'Form link carrying intake_id updates the same database row with user details.']
-    ],
-    pts: [
-      '100% deterministic mathematical date accuracy instead of prompt trust',
-      'Unique intake_id correlation key connecting phone voice state to web forms',
-      'Mass-cancellation workflow with personalized batched SMS/email alerts'
-    ],
-    l: [
-      ['Code ↗', 'https://github.com/navnit-ky03/agentic-voice-booking-assistant']
-    ]
-  },
-  {
-    n: 'NeuroScan AI',
-    k: 'PyTorch · MONAI · ONNX Runtime · Streamlit',
-    d: 'End-to-end 3D brain tumor segmentation from FLAIR MRI with automatic volumetric tumor estimation.',
-    nodes: [
-      ['FLAIR MRI', 'A 3D volumetric NIfTI scan (.nii/.nii.gz) is uploaded.'],
-      ['Sliding window', 'Patch-based sliding window (128×128×128) runs inference over full volume.'],
-      ['3D UNet', 'MONAI 3D UNet architecture predicts voxel-wise tumor segmentation masks.'],
-      ['ONNX Runtime', 'Exported ONNX model runs efficiently on Hugging Face ZeroGPU CPU backends.'],
-      ['Volume + masks', 'Renders tumor volume in cm³ alongside interactive 60 FPS slice viewers.']
-    ],
-    pts: [
-      'Validation Dice Similarity Coefficient (DSC) = 0.8842',
-      'Positive/negative crop sampling ratios to overcome extreme background class imbalance',
-      'Axial, coronal, and sagittal interactive slice viewer with downloadable masks'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://braintumorsegmentationmri.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/BRAIN_TUMOR_SEGMENTATION']
-    ]
-  },
-  {
-    n: 'Portfolio Master RAG Engine',
-    k: 'LangGraph · Pinecone · Groq · FastAPI · SlowAPI',
-    d: 'Decoupled, self-correcting RAG service with automated relevance filters and groundedness verification.',
-    nodes: [
-      ['User Query', 'Dual-route intent classifier determines whether vector retrieval is required.'],
-      ['Pinecone RAG', 'Hybrid vector search queries indexed master knowledge base embeddings (<12ms latency).'],
-      ['Relevance Filter', 'Batched LLM evaluator filters out ungrounded context chunks before generation.'],
-      ['Self-Correction', 'Dual evaluator nodes (issup & isuse) test groundedness and execute query rewriting.'],
-      ['FastAPI REST', 'Rate-limited microservice (10 req/min) delivers grounded answers to UI.']
-    ],
-    pts: [
-      'Self-correcting LangGraph state graph with automated query rewriting loops',
-      'Zero-hallucination guardrails suppressing ungrounded assertions and banning broken markdown tables',
-      'Decoupled REST backend architecture protected with SlowAPI rate-limiting'
-    ],
-    l: [
-      ['Code ↗', 'https://github.com/navnit-ky03/self_rag_engine']
-    ]
-  }
-];
-
-/* ==========================================================================
-   ALL PROJECTS DATA
-   ========================================================================== */
-
-const P = [
-  {
-    num: '01',
-    t: 'Agentic Voice Booking Assistant',
-    d: 'AI receptionist for 3 clinic branches: voice booking, deterministic date checks, form follow-up.',
-    k: ['ai'],
-    s: ['n8n', 'Pinecone', 'Supabase', 'ElevenLabs', 'JavaScript'],
-    metric: '100% Date Accuracy',
-    domain: 'Voice AI / Agentic RAG',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/agentic-voice-booking-assistant/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 200" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="10" y="70" width="130" height="50" rx="8" fill="#0d141d" stroke="#1c2a3a"/>
-        <text x="25" y="100" fill="#22d3ee" font-size="11" font-weight="bold">ElevenLabs</text>
-        <path d="M 140 95 L 190 95" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="190" y="70" width="140" height="50" rx="8" fill="#0d141d" stroke="#39ff9c" stroke-width="2"/>
-        <text x="210" y="100" fill="#39ff9c" font-size="11" font-weight="bold">n8n Agent</text>
-        <path d="M 330 95 L 380 95" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="380" y="20" width="150" height="50" rx="8" fill="#0a1018" stroke="#22d3ee"/>
-        <text x="395" y="50" fill="#22d3ee" font-size="11">Pinecone Vector DB</text>
-        <rect x="380" y="120" width="150" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="395" y="150" fill="#39ff9c" font-size="11">Date Check Subflow</text>
-        <path d="M 530 145 L 580 145" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="580" y="120" width="140" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="595" y="150" fill="#a78bfa" font-size="11">Supabase DB</text>
-      </svg>`,
-    problem: 'Large Language Models regularly hallucinate date arithmetic, availability windows, and scheduling logic when booking appointments directly during live phone calls.',
-    arch: 'Decoupled voice architecture separating LLM intent recognition from deterministic JavaScript sub-workflows across 3 clinic branches.',
-    decisions: [
-      'Implemented deterministic JavaScript date validation sub-workflows (100% mathematical accuracy for closed slots and 10-day booking windows).',
-      'Restricted Pinecone vector search strictly to FAQ queries rather than invoking vector retrieval on every call turn.',
-      'Utilized unique intake_id correlation keys to maintain state persistence across voice calls and follow-up web forms.'
-    ],
-    l: [
-      ['Code ↗', 'https://github.com/navnit-ky03/agentic-voice-booking-assistant']
-    ]
-  },
-  {
-    num: '02',
-    t: 'NeuroScan AI',
-    d: '3D brain tumor segmentation from FLAIR MRI with automatic tumor volume estimation.',
-    k: ['cv', 'ml'],
-    s: ['PyTorch', 'MONAI', 'ONNX Runtime', 'Streamlit', 'Nibabel'],
-    metric: 'Dice = 0.8842',
-    domain: '3D Medical Vision',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/BRAIN_TUMOR_SEGMENTATION/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="20" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="35" y="90" fill="#22d3ee" font-size="11">FLAIR MRI (.nii)</text>
-        <path d="M 160 85 L 210 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="210" y="60" width="160" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="220" y="90" fill="#39ff9c" font-size="11">Sliding Window (128³)</text>
-        <path d="M 370 85 L 420 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="420" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="435" y="90" fill="#a78bfa" font-size="11">MONAI 3D UNet</text>
-        <path d="M 560 85 L 610 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="610" y="60" width="130" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="620" y="90" fill="#22d3ee" font-size="11">ONNX Runtime</text>
-      </svg>`,
-    problem: 'Standard 2D convolutional networks lose spatial depth across slices, while raw 3D MRI FLAIR volumes exceed GPU memory limits during standard batch UNet training.',
-    arch: 'Patch-based sliding window inference pipeline executing 3D UNet voxel segmentation over FLAIR MRI scans exported to ONNX Runtime.',
-    decisions: [
-      'Achieved validation Dice Similarity Coefficient (DSC) = 0.8842 on test splits.',
-      'Applied positive/negative crop sampling ratios during dataset preprocessing to resolve extreme background-to-tumor voxel class imbalance.',
-      'Exported model weights to ONNX Runtime for zero-GPU CPU deployment with real-time 60 FPS slice rendering.'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://braintumorsegmentationmri.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/BRAIN_TUMOR_SEGMENTATION']
-    ]
-  },
-  {
-    num: '03',
-    t: 'Portfolio Master RAG Engine',
-    d: 'Decoupled, self-correcting RAG microservice with state graph verification and thread memory.',
-    k: ['ai'],
-    s: ['LangGraph', 'Pinecone', 'Groq API', 'FastAPI', 'SlowAPI', 'Pydantic'],
-    metric: '<12ms Latency',
-    domain: 'Self-Correcting GenAI',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/self_rag_engine/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="20" y="60" width="130" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="35" y="90" fill="#22d3ee" font-size="11">User Query</text>
-        <path d="M 150 85 L 200 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="200" y="60" width="150" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="210" y="90" fill="#39ff9c" font-size="11">LangGraph Router</text>
-        <path d="M 350 85 L 400 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="400" y="60" width="150" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="410" y="90" fill="#a78bfa" font-size="11">Pinecone Vector DB</text>
-        <path d="M 550 85 L 600 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="600" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#39ff9c"/>
-        <text x="615" y="90" fill="#39ff9c" font-size="11">FastAPI REST</text>
-      </svg>`,
-    problem: 'Standard linear RAG pipelines frequently output ungrounded hallucinations, robotic preamble strings, and broken markdown tables when answering complex technical queries.',
-    arch: 'Decoupled self-correcting RAG microservice built with LangGraph state graphs, Pinecone vector indexes, Groq LLM inference, and FastAPI.',
-    decisions: [
-      'Built dual evaluation nodes (issup for context support and isuse for answer usefulness) that trigger automated query rewriting when context quality drops.',
-      'Implemented strict system prompt formatting constraints banning markdown tables and robotic intro phrasing.',
-      'Implemented SlowAPI rate-limiting (10 req/min) and wide CORS preflight handling (allow_methods=["*"]).'
-    ],
-    l: [
-      ['Code ↗', 'https://github.com/navnit-ky03/self_rag_engine']
-    ]
-  },
-  {
-    num: '04',
-    t: 'Churn & 12-Month CLV Engine',
-    d: 'Decoupled ML service: XGBoost churn model plus 12-month CLV regression behind async APIs.',
-    k: ['ml'],
-    s: ['FastAPI', 'XGBoost', 'Scikit-Learn', 'Pydantic v2', 'Streamlit'],
-    metric: 'ROC-AUC = 0.912',
-    domain: 'Predictive Analytics',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/Customer-Lifetime-Value/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="30" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="45" y="90" fill="#22d3ee" font-size="11">FastAPI Endpoint</text>
-        <path d="M 170 85 L 220 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="220" y="20" width="160" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="230" y="50" fill="#39ff9c" font-size="11">XGBoost Churn Classifier</text>
-        <rect x="220" y="100" width="160" height="50" rx="8" fill="#0a1018" stroke="#a78bfa"/>
-        <text x="230" y="130" fill="#a78bfa" font-size="11">XGBoost CLV Regressor</text>
-      </svg>`,
-    problem: 'Coupling classification (churn prediction) and regression (lifetime value estimation) into a single monolithic model creates tight dependency locks and deployment friction.',
-    arch: 'Asynchronous FastAPI microservice operating decoupled XGBoost classification and XGBoost regressor pipelines.',
-    decisions: [
-      'Achieved Churn Classifier ROC-AUC = 0.912 (Accuracy = 92.4%) and CLV Regressor R² = 0.884 (RMSE = $142.10, MAE = $98.45).',
-      'Enforced strict Pydantic v2 schema validation across single-record and batch JSON request payloads.',
-      'Hosted interactive analytical dashboard on Hugging Face / Streamlit backends.'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://customer-lifetime-value-ky03.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/Customer-Lifetime-Value']
-    ]
-  },
-  {
-    num: '05',
-    t: 'Delivery Analytics Engine',
-    d: 'Interactive ops dashboard across 13 cities and 8 quick-commerce brands with XGBoost delivery predictor.',
-    k: ['viz', 'ml'],
-    s: ['Plotly', 'Pandas', 'XGBoost', 'Streamlit', 'Scikit-Learn'],
-    metric: 'R² = 89.4%',
-    domain: 'Logistics Analytics',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/delivery_analytics_engine/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="40" y="60" width="150" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="55" y="90" fill="#22d3ee" font-size="11">Streamlit Dashboard</text>
-        <path d="M 190 85 L 240 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="240" y="60" width="170" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="250" y="90" fill="#39ff9c" font-size="11">Geospatial Heatmaps</text>
-        <path d="M 410 85 L 460 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="460" y="60" width="160" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="470" y="90" fill="#a78bfa" font-size="11">XGBoost Duration Predictor</text>
-      </svg>`,
-    problem: 'Quick-commerce operations teams lack unified real-time visibility into driver transit delays and regional SLA bottleneck variables across multiple city hubs.',
-    arch: 'Interactive Streamlit analytics dashboard combined with real-time feature engineering feeding into an XGBoost duration prediction pipeline.',
-    decisions: [
-      'Achieved duration prediction accuracy of R² = 89.4% (MAE = 1.84 min, RMSE = 2.31 min).',
-      'Engineered geospatial heatmaps tracking order density across 13 cities and 8 quick-commerce brands.',
-      'Created custom delay index metrics weighting weather conditions, driver availability, and traffic density.'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://delivery-analytics-engine.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/delivery_analytics_engine']
-    ]
-  },
-  {
-    num: '06',
-    t: 'Credit Card Fraud Detection Engine',
-    d: 'Handles severe class imbalance with SMOTE and evaluates on precision-recall curves.',
-    k: ['ml'],
-    s: ['Scikit-Learn', 'SMOTE', 'XGBoost', 'Streamlit', 'Imbalanced-Learn'],
-    metric: 'Recall = 85.2%',
-    domain: 'Financial Anomaly ML',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/Credit-Card-Scam-Engine/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="40" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="50" y="90" fill="#22d3ee" font-size="11">Transaction Data</text>
-        <path d="M 180 85 L 230 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="230" y="60" width="160" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="240" y="90" fill="#39ff9c" font-size="11">SMOTE Oversampling</text>
-        <path d="M 390 85 L 440 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="440" y="60" width="160" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="450" y="90" fill="#a78bfa" font-size="11">XGBoost PR Curve</text>
-      </svg>`,
-    problem: 'Standard model accuracy is highly misleading in financial fraud datasets where positive fraudulent cases represent <0.1% of total transaction volume.',
-    arch: 'Class-imbalance mitigation pipeline utilizing SMOTE oversampling and cost-sensitive XGBoost training evaluated strictly via Precision-Recall curves.',
-    decisions: [
-      'Prioritized false-negative reduction, achieving Recall = 85.2%, Specificity = 99.96%, and a False Positive Rate = 0.033%.',
-      'Developed an interactive risk-threshold slider inside the UI allowing risk managers to adjust cost matrices in real time.'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://credit-card-scam-engine.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/Credit-Card-Scam-Engine']
-    ]
-  },
-  {
-    num: '07',
-    t: 'Multimodal Lecture RAG Assistant',
-    d: 'Converts lecture video audio to timestamped chunks with Whisper, indexed via SentenceTransformers for Gemini 3.6 Flash QA.',
-    k: ['ai'],
-    s: ['Python', 'Whisper', 'SentenceTransformers', 'Gemini API', 'Streamlit', 'Vector DB'],
-    metric: 'Sub-second RAG',
-    domain: 'Multimodal GenAI / Video RAG',
-    readmeUrl: 'https://raw.githubusercontent.com/navnit-ky03/rag_based_teaching_model/main/README.md',
-    archSvg: `
-      <svg viewBox="0 0 760 180" style="width:100%; font-family:monospace; background:#070a0f; border-radius:8px; padding:10px;">
-        <rect x="20" y="60" width="130" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="30" y="90" fill="#22d3ee" font-size="11">Lecture Video</text>
-        <path d="M 150 85 L 190 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="190" y="60" width="140" height="50" rx="8" fill="#0a1018" stroke="#39ff9c"/>
-        <text x="200" y="90" fill="#39ff9c" font-size="11">OpenAI Whisper</text>
-        <path d="M 330 85 L 370 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="370" y="60" width="150" height="50" rx="8" fill="#0d141d" stroke="#a78bfa"/>
-        <text x="380" y="90" fill="#a78bfa" font-size="11">SentenceTransformers</text>
-        <path d="M 520 85 L 560 85" stroke="#39ff9c" stroke-width="2"/>
-        <rect x="560" y="60" width="140" height="50" rx="8" fill="#0d141d" stroke="#22d3ee"/>
-        <text x="575" y="90" fill="#22d3ee" font-size="11">Gemini RAG</text>
-      </svg>`,
-    problem: 'Extracting specific concepts or answers from hours of video lectures requires tedious manual scrubbing across video timelines.',
-    arch: 'Multimodal processing pipeline converting video audio streams into timestamped transcript chunks via OpenAI Whisper, indexed with SentenceTransformers, and queried through Gemini API.',
-    decisions: [
-      'Utilized OpenAI Whisper for speech recognition to extract chunked transcripts with exact video timecodes.',
-      'Indexed transcript chunks using SentenceTransformers dense vectors to pinpoint precise video timestamps during semantic search.',
-      'Designed an interactive Streamlit frontend that links cited answer sources directly to video timestamp markers.'
-    ],
-    l: [
-      ['Live Demo ↗', 'https://rag-assistant-model.streamlit.app/'],
-      ['Code ↗', 'https://github.com/navnit-ky03/rag_based_teaching_model']
-    ]
-  }
-];
-
-const links = a => a.map(([x, u]) => `<a href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${x}</a>`).join('');
-
-/* Hero Terminal Typing Animation */
-(async () => {
-  const el = $('#ty');
-  if (!el) return;
-  const L = [
-    '$ whoami',
-    'navnit-kumar-yadav | B.Tech Data Science, IILM | grad May 2027',
-    '$ cat focus.txt',
-    'ML systems · GenAI/RAG · agentic automation · computer vision',
-    '$ ls projects/ | wc -l',
-    '7 deployed, all live'
-  ];
-  for (const l of L) {
-    const d = document.createElement('div');
-    if (l[0] === '$') d.className = 'cmd';
-    el.append(d);
-    for (const ch of l) {
-      d.textContent += ch;
-      await new Promise(r => setTimeout(r, l[0] === '$' ? 40 : 12));
-    }
-    await new Promise(r => setTimeout(r, 220));
-  }
-})();
-
-/* Flagship Carousel Setup */
-let fi = 0, ni = 0, hold = 0;
-const tabs = $('#tabs'), pl = $('#pl');
-
-if (tabs && pl) {
-  F.forEach((f, i) => {
-    const b = document.createElement('button');
-    b.className = 'tab';
-    b.textContent = f.n;
-    b.onclick = () => { fi = i; hold = Date.now() + 9000; renderF(); };
-    tabs.append(b);
-  });
-
-  function renderF() {
-    const f = F[fi];
-    ni = 0;
-    [...tabs.children].forEach((t, i) => t.classList.toggle('on', i === fi));
-    $('#ft').textContent = f.n;
-    $('#fk').textContent = f.k;
-    $('#fd').textContent = f.d;
-    pl.innerHTML = '';
-    
-    f.nodes.forEach(([n], i) => {
-      const b = document.createElement('button');
-      b.className = 'nd';
-      b.textContent = n;
-      b.onclick = () => { ni = i; hold = Date.now() + 9000; hl(); };
-      pl.append(b);
-      if (i < f.nodes.length - 1) {
-        const a = document.createElement('span');
-        a.className = 'ar';
-        a.textContent = '→';
-        pl.append(a);
-      }
-    });
-    
-    $('#fp').innerHTML = f.pts.map(p => `<li>${p}</li>`).join('');
-    $('#fx').innerHTML = links(f.l);
-    hl();
-  }
-
-  function hl() {
-    const f = F[fi];
-    [...pl.querySelectorAll('.nd')].forEach((b, i) => b.classList.toggle('on', i === ni));
-    $('#tip').textContent = f.nodes[ni][1];
-    $('#pg').style.width = ((ni + 1) / f.nodes.length * 100) + '%';
-  }
-
-  setInterval(() => {
-    if (Date.now() < hold) return;
-    ni++;
-    if (ni >= F[fi].nodes.length) {
-      fi = (fi + 1) % F.length;
-      renderF();
-    } else hl();
-  }, 2200);
-
-  const flEl = $('#fl');
-  if (flEl) {
-    flEl.onmouseenter = () => hold = Infinity;
-    flEl.onmouseleave = () => hold = Date.now() + 2000;
-  }
-  renderF();
+let healthProbe = null;
+let healthState = { kind: 'unchecked', checkedAt: 0 };
+function connectionStatus(label, state, explanation = '') {
+  $$('.chat-connection').forEach(el => { el.textContent = label; el.title = explanation; });
+  $$('.chat-status-dot').forEach(el => { el.dataset.state = state; });
 }
-
-/* ==========================================================================
-   PROJECT LIST & TABBED MODAL WITH DYNAMIC README FETCHER
-   ========================================================================== */
-
-const projectList = $('#projectList'), fil = $('#fil');
-const modalOverlay = $('#modalOverlay'), modalClose = $('#modalClose');
-
-if (projectList) {
-  P.forEach((p) => {
-    const row = document.createElement('div');
-    row.className = 'project-row';
-    row.dataset.k = p.k.join(' ');
-
-    row.innerHTML = `
-      <span class="m row-num">${p.num}</span>
-      <div>
-        <h3>${p.t}</h3>
-        <div class="ch" style="margin-top:4px;">${p.s.slice(0,3).map(s => `<span>${s}</span>`).join('')}</div>
-      </div>
-      <p class="row-desc">${p.d}</p>
-      <div class="row-metric">${p.metric}</div>
-      <div class="row-actions">${links(p.l)}</div>
-    `;
-
-    row.onclick = () => openProjectModal(p);
-    projectList.append(row);
-  });
-}
-
-function openProjectModal(p) {
-  currentProject = p;
-  $('#mNum').textContent = p.num;
-  $('#mTitle').textContent = p.t;
-  $('#mDomain').textContent = p.domain;
-  $('#mProblem').textContent = p.problem;
-  $('#mArch').textContent = p.arch;
-  $('#mDecisions').innerHTML = p.decisions.map(d => `<li>${d}</li>`).join('');
-  $('#mStack').innerHTML = p.s.map(s => `<span>${s}</span>`).join('');
-  $('#mLinks').innerHTML = links(p.l);
-  
-  $('#mDiagramWrapper').innerHTML = p.archSvg || '<p>Architecture diagram unavailable.</p>';
-  switchModalTab('overview');
-  modalOverlay.classList.add('open');
-}
-
-const modalTabs = document.querySelectorAll('.m-tab');
-modalTabs.forEach(tab => {
-  tab.onclick = () => switchModalTab(tab.dataset.tab);
-});
-
-async function switchModalTab(tabKey) {
-  modalTabs.forEach(t => t.classList.toggle('on', t.dataset.tab === tabKey));
-  
-  $('#tabOverview').classList.toggle('on', tabKey === 'overview');
-  $('#tabArchitecture').classList.toggle('on', tabKey === 'architecture');
-  $('#tabReadme').classList.toggle('on', tabKey === 'readme');
-
-  if (tabKey === 'readme' && currentProject) {
-    const container = $('#mReadmeContent');
-    container.innerHTML = '<p style="color:var(--text-muted)">Fetching full README documentation from GitHub repository...</p>';
-    
+/* GET / only proves that the HTTP service answered; it never marks LLMs healthy. */
+function checkBackendReadiness(timeoutMs = TIMING.healthTimeout) {
+  if (healthProbe) return healthProbe;
+  healthProbe = (async () => {
+    let kind;
     try {
-      const res = await fetch(currentProject.readmeUrl);
-      if (!res.ok) throw new Error('README fetch failed');
-      const markdown = await res.text();
-      
-      if (typeof marked !== 'undefined') {
-        container.innerHTML = marked.parse(markdown);
-      } else {
-        container.textContent = markdown;
-      }
-    } catch (err) {
-      container.innerHTML = `
-        <p style="color:var(--accent-cyan); margin-bottom:8px;"><strong>Full Repository Documentation:</strong></p>
-        <p>Could not load live README stream directly. You can inspect the full documentation on GitHub:</p>
-        <div style="margin-top:12px;">${links(currentProject.l)}</div>
-      `;
-    }
-  }
-}
-
-if (modalClose) modalClose.onclick = () => modalOverlay.classList.remove('open');
-if (modalOverlay) {
-  modalOverlay.onclick = (e) => {
-    if (e.target === modalOverlay) modalOverlay.classList.remove('open');
-  };
-}
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('open')) {
-    modalOverlay.classList.remove('open');
-  }
-});
-
-/* Category Filters Setup */
-if (fil) {
-  [
-    ['all', 'All'],
-    ['ai', 'GenAI & Agents'],
-    ['cv', 'Vision'],
-    ['ml', 'ML Systems'],
-    ['viz', 'Dashboards']
-  ].forEach(([k, t], i) => {
-    const b = document.createElement('button');
-    b.className = 'b' + (i ? '' : ' on');
-    b.textContent = t;
-    b.onclick = () => {
-      [...fil.children].forEach(x => x.classList.remove('on'));
-      b.classList.add('on');
-      [...projectList.children].forEach(row => {
-        row.classList.toggle('hide', k !== 'all' && !row.dataset.k.split(' ').includes(k));
+      const result = await fetchWithTimeout(HEALTH_URL, { method: 'GET', mode: 'cors', cache: 'no-store' }, timeoutMs, async response => {
+        const result = response.ok ? 'reachable' : [502, 503, 504].includes(response.status) ? 'starting' : 'unconfirmed';
+        // Cancel an unused body; an HTML hosting response need not be downloaded.
+        if (response.body) await response.body.cancel();
+        return result;
       });
-    };
-    fil.append(b);
-  });
+      kind = result;
+    } catch (error) { kind = error.kind === 'timeout' ? 'timeout' : 'network'; }
+    healthState = { kind, checkedAt: Date.now() };
+    return healthState;
+  })().finally(() => { healthProbe = null; });
+  return healthProbe;
 }
-
-/* Terminal Interactive Shell */
-const out = $('#out'), inp = $('#in');
-const C = {
-  help: () => ['commands: about, projects, skills, contact, clear'],
-  about: () => ['Navnit Kumar Yadav, final-year B.Tech Data Science (IILM University, May 2027).', 'Specializing in ML systems, 3D medical vision, and agentic RAG microservices.'],
-  projects: () => P.map((p) => `${p.num}. ${p.t} [${p.metric}] - ${p.d}`),
-  skills: () => [
-    'Core ML: Python, SQL, PyTorch, Scikit-Learn, XGBoost, Pandas, NumPy',
-    'GenAI/Agents: LangGraph, Pinecone, RAG, n8n, Groq API',
-    'Vision: 3D Segmentation, MONAI, ONNX Runtime, OpenCV',
-    'Deployment: FastAPI, Pydantic v2, Streamlit, Supabase, HF Hub'
-  ],
-  contact: () => [EMAIL, 'github.com/navnit-ky03']
-};
-
-function addCmd(t, c) {
-  const d = document.createElement('div');
-  d.textContent = t;
-  if (c) d.className = c;
-  out.append(d);
-}
-
-function runCmd(v) {
-  const c = v.trim().toLowerCase();
-  if (!c) return;
-  if (c === 'clear') {
-    out.textContent = '';
-    return;
+const prewarmPromise = (async function prewarmRenderBackend() {
+  // Always send the original background GET as soon as this script loads.
+  const result = await checkBackendReadiness();
+  if (result.kind === 'reachable') {
+    connectionStatus('Server reachable · AI checked on request', 'reachable', 'GET / succeeded; downstream LLM availability is not established.');
+  } else {
+    connectionStatus('Readiness unconfirmed · you can still ask', 'unknown', 'A delay or network restriction does not establish an application failure.');
   }
-  addCmd('$ ' + c, 'cmd');
-  (C[c] ? C[c]() : ['command not found: ' + c + '. try "help"']).forEach(x => addCmd(x));
-  $('#tm').scrollTop = $('#tm').scrollHeight;
-}
+  return result;
+})();
 
-if (out && inp) {
-  addCmd('type a command, or click a button below. try "help".');
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { runCmd(inp.value); inp.value = ''; } });
-
-  ['help', 'about', 'projects', 'skills', 'contact', 'clear'].forEach(c => {
-    const b = document.createElement('button');
-    b.className = 'b m';
-    b.textContent = c;
-    b.onclick = () => runCmd(c);
-    $('#qc').append(b);
-  });
-}
-
-/* Toast */
-const toast = t => {
-  const e = $('#ts');
-  if (!e) return;
-  e.textContent = t;
-  e.classList.add('sh');
-  setTimeout(() => e.classList.remove('sh'), 1800);
-};
-
-const cpBtn = $('#cp');
-if (cpBtn) {
-  cpBtn.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(EMAIL);
-      toast('Email copied');
-    } catch (e) {
-      toast(EMAIL);
-    }
-  };
-}
-
-/* Scroll Animations */
-addEventListener('scroll', () => {
-  const bar = $('#bar');
-  if (bar) bar.style.width = (scrollY / (document.documentElement.scrollHeight - innerHeight) * 100) + '%';
+/* Accessible mobile navigation; normal static links preserve browser history. */
+const menuToggle = $('#menuToggle');
+function closeMenu() { $('#mainNav').classList.remove('open'); menuToggle.setAttribute('aria-expanded', 'false'); }
+menuToggle.addEventListener('click', () => {
+  const open = menuToggle.getAttribute('aria-expanded') !== 'true';
+  menuToggle.setAttribute('aria-expanded', String(open));
+  $('#mainNav').classList.toggle('open', open);
+});
+$('#mainNav').addEventListener('click', event => { if (event.target.closest('a')) closeMenu(); });
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && $('#mainNav').classList.contains('open')) { closeMenu(); menuToggle.focus(); }
+});
+window.addEventListener('pageshow', closeMenu);
+window.addEventListener('scroll', () => {
+  const total = document.documentElement.scrollHeight - innerHeight;
+  $('#scrollProgress').style.width = `${total > 0 ? Math.min(100, scrollY / total * 100) : 0}%`;
 }, { passive: true });
 
-const io = new IntersectionObserver(es => es.forEach(e => {
-  if (e.isIntersecting) {
-    e.target.classList.add('in');
-    io.unobserve(e.target);
+/* Registry-derived project filtering and search. */
+let selectedCategory = 'All';
+function filterProjects() {
+  const query = $('#projectSearch')?.value.trim().toLowerCase() || '';
+  let visible = 0;
+  $$('#projectGrid .project-card').forEach(card => {
+    card.hidden = !((selectedCategory === 'All' || card.dataset.category === selectedCategory) && card.dataset.search.includes(query));
+    if (!card.hidden) visible++;
+  });
+  if ($('#projectCount')) $('#projectCount').textContent = `${visible} ${visible === 1 ? 'project' : 'projects'}`;
+  if ($('#emptyProjects')) $('#emptyProjects').hidden = visible !== 0;
+}
+$$('[data-project-filter]').forEach(button => button.addEventListener('click', () => {
+  selectedCategory = button.dataset.projectFilter;
+  $$('[data-project-filter]').forEach(b => { b.setAttribute('aria-pressed', String(b === button)); b.classList.toggle('active', b === button); });
+  filterProjects();
+}));
+$('#projectSearch')?.addEventListener('input', filterProjects);
+
+/* Three authentic local MRI views; switching never requests inference. */
+$$('.mri-tabs').forEach(tablist => {
+  const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+  function selectTab(index, focus = false) {
+    tabs.forEach((tab,i) => {
+      tab.setAttribute('aria-selected', String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = i !== index;
+    });
+    if (focus) tabs[index].focus();
   }
-}), { threshold: 0.1 });
+  tabs.forEach((tab,index) => {
+    tab.addEventListener('click', () => selectTab(index));
+    tab.addEventListener('keydown', event => {
+      const next = {ArrowRight:(index+1)%tabs.length, ArrowLeft:(index-1+tabs.length)%tabs.length, Home:0, End:tabs.length-1}[event.key];
+      if (next !== undefined) { event.preventDefault(); selectTab(next,true); }
+    });
+  });
+  selectTab(0);
+});
 
-document.querySelectorAll('.rv').forEach(x => io.observe(x));
+/* Disclosure state belongs to each view; conversation state remains shared.
+   Closing never leaves keyboard focus inside a hidden suggestions panel. */
+function setSuggestionsExpanded(view, expanded, returnToToggle = false) {
+  const panel = view.querySelector('[data-suggestion-panel]');
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  const focusWouldDisappear = !expanded && panel.contains(document.activeElement);
+  panel.hidden = !expanded;
+  toggle.setAttribute('aria-expanded',String(expanded));
+  if (focusWouldDisappear) {
+    const target = returnToToggle ? toggle : view.querySelector('.chat-form input');
+    target.focus({preventScroll:true});
+  }
+}
+function collapseSuggestionsAfterSubmission() {
+  $$('[data-chat-view]').forEach(view => setSuggestionsExpanded(view,false));
+}
+$$('[data-chat-view]').forEach(view => {
+  const toggle = view.querySelector('[data-suggestion-toggle]');
+  toggle.addEventListener('click', () => setSuggestionsExpanded(view,toggle.getAttribute('aria-expanded') !== 'true'));
+  view.querySelector('.chat-suggestions').addEventListener('keydown', event => {
+    if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault(); event.stopPropagation();
+      setSuggestionsExpanded(view,false,true);
+      toggle.focus({preventScroll:true});
+    }
+  });
+});
 
-const io2 = new IntersectionObserver(es => es.forEach(e => {
-  if (!e.isIntersecting) return;
-  io2.unobserve(e.target);
-  const n = +e.target.dataset.n, t0 = performance.now();
-  (function s(t) {
-    const p = Math.min((t - t0) / 800, 1);
-    e.target.textContent = Math.round(n * p);
-    if (p < 1) requestAnimationFrame(s);
-  })(t0);
+/* Visitor-oriented, page-specific prompts. Pagination changes suggestions only;
+   the exact selected question still uses the existing shared request model. */
+$$('[data-chat-view]').forEach(view => {
+  let group = 0;
+  const groups = Math.ceil(suggestions.length / 4);
+  const button = view.querySelector('[data-more-questions]');
+  button.addEventListener('click', () => {
+    group = (group + 1) % groups;
+    const list = view.querySelector('[data-suggestion-list]');
+    list.replaceChildren();
+    suggestions.slice(group*4,group*4+4).forEach(({label,question}) => {
+      const prompt = element('button','chip suggestion-chip',label);
+      prompt.type = 'button'; prompt.dataset.question = question;
+      prompt.setAttribute('aria-label',question); prompt.title = question;
+      prompt.append(element('span','', '↗')); prompt.lastChild.setAttribute('aria-hidden','true');
+      prompt.disabled = inFlight; list.append(prompt);
+    });
+    view.querySelector('[data-suggestion-status]').textContent = `Question group ${group+1} of ${groups}`;
+  });
+});
+
+/* Preserve flagship node explanations with explicit, keyboard-accessible controls. */
+$$('.architecture').forEach(panel => {
+  const project = projects.find(p => p.id === panel.dataset.project);
+  let step = 0;
+  function selectStep(index) {
+    step = (index + project.architecture.length) % project.architecture.length;
+    panel.querySelectorAll('[data-step]').forEach((button, i) => button.setAttribute('aria-pressed', String(i === step)));
+    const explanation = panel.querySelector('.architecture-explanation');
+    explanation.querySelector('h3').textContent = project.architecture[step][0];
+    explanation.querySelector('p').textContent = project.architecture[step][1];
+    panel.querySelector('.step-count').textContent = `${String(step + 1).padStart(2, '0')} / ${String(project.architecture.length).padStart(2, '0')}`;
+  }
+  panel.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => selectStep(Number(button.dataset.step))));
+  panel.querySelectorAll('[data-direction]').forEach(button => button.addEventListener('click', () => selectStep(step + Number(button.dataset.direction))));
+});
+$$('[data-flagship]').forEach(button => button.addEventListener('click', () => {
+  $$('[data-flagship]').forEach(b => { b.setAttribute('aria-pressed', String(b === button)); b.classList.toggle('active', b === button); });
+  $$('.flagship-panel').forEach(panel => { panel.hidden = panel.id !== `flagship-${button.dataset.flagship}`; });
 }));
 
-document.querySelectorAll('[data-n]').forEach(x => io2.observe(x));
+/* DOM-only helpers: no remote content or user input is inserted as HTML. */
+function element(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+/* A small Markdown subset, built exclusively with DOM nodes. HTML remains
+   literal text; links must be absolute HTTPS URLs without embedded credentials. */
+function appendAnswerText(container, text) {
+  function inline(parent, source) {
+    const pattern = /\*\*([^*\n]+)\*\*|`([^`\n]+)`|\[([^\]\n]+)\]\(([^)\n]+)\)/g;
+    let start = 0;
+    for (const match of source.matchAll(pattern)) {
+      parent.append(document.createTextNode(source.slice(start, match.index)));
+      if (match[1]) parent.append(element('strong','',match[1]));
+      else if (match[2]) parent.append(element('code','',match[2]));
+      else {
+        let href;
+        try { const url = new URL(match[4]); if (url.protocol === 'https:' && !url.username && !url.password) href = url.href; } catch { /* Preserve unsafe/relative links as text. */ }
+        if (href) { const link = element('a','',match[3]); link.href = href; link.target = '_blank'; link.rel = 'noopener noreferrer'; parent.append(link); }
+        else parent.append(document.createTextNode(match[0]));
+      }
+      start = match.index + match[0].length;
+    }
+    parent.append(document.createTextNode(source.slice(start)));
+  }
+  for (const block of text.split(/\n\s*\n/)) {
+    const lines = block.split('\n');
+    if (lines.every(line => /^[-*]\s+/.test(line))) {
+      const list = element('ul');
+      lines.forEach(line => { const item = element('li'); inline(item,line.replace(/^[-*]\s+/,'')); list.append(item); });
+      container.append(list);
+    } else {
+      const paragraph = element('p');
+      lines.forEach((line,index) => { if (index) paragraph.append(document.createElement('br')); inline(paragraph,line); });
+      container.append(paragraph);
+    }
+  }
+}
+function selectSkill(id, updateUrl = true) {
+  const skill = skills.find(s => s.id === id);
+  if (!skill || !$('#skillDetail')) return;
+  $$('[data-skill]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.skill === id)));
+  const panel = $('#skillDetail');
+  panel.replaceChildren(element('p','eyebrow','SKILL → PROJECTS'), element('h2','',skill.name), element('p','',skill.description));
+  const map = element('div','skill-map');
+  projects.filter(p => p.skills.includes(id)).forEach(project => {
+    const link = element('a','skill-project-link');
+    link.href = `${base}projects/${project.id}/`;
+    link.append(element('strong','',`${project.title} ↗`), element('span','',project.description));
+    map.append(link);
+  });
+  panel.append(map);
+  const question = element('button','chip',`How has Navnit used ${skill.name}? ↗`);
+  question.type = 'button';
+  question.dataset.question = `How has Navnit used ${skill.name} in his projects?`;
+  panel.append(question);
+  if (updateUrl) {
+    const url = new URL(location.href); url.searchParams.set('skill', id);
+    history.replaceState(null, '', url);
+  }
+}
+$$('[data-skill]').forEach(button => button.addEventListener('click', () => {
+  selectSkill(button.dataset.skill);
+  if (matchMedia('(max-width: 640px)').matches) $('#skillDetail').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+}));
+$$('[data-skill-filter]').forEach(button => button.addEventListener('click', () => {
+  $$('[data-skill-filter]').forEach(b => { b.classList.toggle('active', b === button); b.setAttribute('aria-pressed', String(b === button)); });
+  const category = button.dataset.skillFilter;
+  $$('[data-skill]').forEach(b => { b.hidden = category !== 'All' && b.dataset.category !== category; });
+  const selected = $('[data-skill][aria-pressed="true"]');
+  if (!selected || selected.hidden) selectSkill($$('[data-skill]').find(b => !b.hidden).dataset.skill);
+}));
+if ($('#skillDetail')) selectSkill(new URLSearchParams(location.search).get('skill') || skills[0].id, false);
+window.addEventListener('popstate', () => { if ($('#skillDetail')) selectSkill(new URLSearchParams(location.search).get('skill') || skills[0].id, false); });
 
-/* ==========================================================================
-   REAL-TIME SYNCHRONIZED MULTI-VIEW RAG CHATBOT (NON-STREAMING Payload)
-   ========================================================================== */
+/* Remote README content is always rendered as text, including HTML and links.
+   No executable Markdown parser is loaded. Requests are bounded and retryable. */
+$$('[data-readme]').forEach(button => button.addEventListener('click', async () => {
+  if (button.disabled) return;
+  const project = projects.find(p => p.id === button.dataset.readme);
+  const content = $('#readmeContent'), status = $('#readmeStatus');
+  button.disabled = true; status.textContent = 'Loading source documentation…';
+  try {
+    const text = await fetchWithTimeout(project.readme, {}, 15000, async response => {
+      if (!response.ok) throw new RequestError('http', response.status);
+      const text = await response.text();
+      if (text.length > 500000) throw new RequestError('invalid');
+      return text;
+    });
+    content.textContent = text; content.hidden = false;
+    status.textContent = 'Source Markdown shown as text. Repository links remain available above.';
+    button.textContent = 'Refresh README ↻';
+  } catch {
+    status.textContent = 'Could not load the README from this browser. The GitHub source link above is still available.';
+    button.textContent = 'Retry README ↻';
+  } finally { button.disabled = false; }
+}));
 
-let threadId = sessionStorage.getItem('navnit_chat_thread_id');
-if (!threadId) {
-  threadId = (window.crypto && window.crypto.randomUUID)
-    ? window.crypto.randomUUID()
-    : 'thread_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-  sessionStorage.setItem('navnit_chat_thread_id', threadId);
+/* Optional local terminal showcase, with facts derived from the same registry. */
+function terminalCommand(command) {
+  const output = $('#terminalOutput');
+  if (!output) return;
+  const key = command.trim().toLowerCase();
+  if (!key) return;
+  if (key === 'clear') { output.replaceChildren(); return; }
+  output.append(element('div','',`$ ${key}`));
+  const commands = {
+    help: () => ['Commands: about, projects, skills, contact, clear'],
+    about: () => [site.about.intro],
+    projects: () => projects.map(p => `${p.title} — ${p.category}`),
+    skills: () => skills.map(s => s.name),
+    contact: () => [site.email, site.github]
+  };
+  (commands[key] ? commands[key]() : ['Command not found. Try help.']).forEach(line => output.append(element('div','',line)));
+  output.scrollTop = output.scrollHeight;
+}
+$('#terminalForm')?.addEventListener('submit', event => { event.preventDefault(); terminalCommand($('#terminalInput').value); $('#terminalInput').value = ''; });
+$$('[data-command]').forEach(button => button.addEventListener('click', () => terminalCommand(button.dataset.command)));
+$('#copyEmail')?.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(site.email); $('#copyStatus').textContent = 'Email address copied.'; }
+  catch { $('#copyStatus').textContent = `Copy this address: ${site.email}`; }
+});
+/* Progressive enhancement: counters start with the correct static registry value. */
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+  const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    observer.unobserve(entry.target);
+    const target = Number(entry.target.dataset.count), started = performance.now();
+    const tick = now => { const progress = Math.min((now - started) / 650, 1); entry.target.textContent = String(Math.round(progress * target)); if (progress < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }));
+  $$('[data-count]').forEach(el => observer.observe(el));
 }
 
-const heroChatConsole = $('#heroChatConsole');
-const chatFab = $('#chatFab'), chatWindow = $('#chatWindow'), chatClose = $('#chatClose');
-
-if (heroChatConsole && chatFab) {
-  const fabObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) {
-        chatFab.classList.add('visible');
-      } else {
-        chatFab.classList.remove('visible');
-        if (chatWindow) chatWindow.classList.remove('open');
+/* One tab/session conversation across every static page and both entry points. */
+const STORAGE_KEY = 'navnit_portfolio_chat_v2';
+const greeting = 'Hi! I can help you explore Navnit’s projects, engineering strengths, and fit for an opportunity. What would you like to know?';
+function newId() { return window.crypto?.randomUUID?.() || `thread_${Date.now()}_${Math.random().toString(36).slice(2)}`; }
+function loadConversation() {
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY)); } catch { /* Storage may be disabled or malformed. */ }
+  const valid = saved && saved.version === 2 && typeof saved.threadId === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(saved.threadId) && Array.isArray(saved.messages) && saved.messages.length <= 100 && saved.messages.every(m => m && typeof m.id === 'string' && m.id.length < 150 && ['user','bot'].includes(m.role) && typeof m.text === 'string' && m.text.length <= 30000 && ['complete','pending','failed'].includes(m.status));
+  if (!valid) return { version: 2, threadId: newId(), messages: [], drafts: {} };
+  // Treat saved content as untrusted and retain only explicitly supported fields.
+  return { version: 2, threadId: saved.threadId, messages: saved.messages.map(m => ({ id: m.id, role: m.role, text: m.text, status: m.status === 'pending' ? 'failed' : m.status, failure: m.status === 'pending' ? { kind: 'interrupted', status: 0 } : { kind: ['network','timeout','http','invalid','interrupted'].includes(m.failure?.kind) ? m.failure.kind : 'network', status: Number.isInteger(m.failure?.status) ? m.failure.status : 0, reachable: m.failure?.reachable === true } })), drafts: Object.fromEntries(['hero','floating'].map(key => [key, typeof saved.drafts?.[key] === 'string' ? saved.drafts[key].slice(0,2000) : ''])) };
+}
+const conversation = loadConversation();
+// Keep legacy thread identity when possible, without depending on storage access.
+try {
+  const legacy = sessionStorage.getItem('navnit_chat_thread_id');
+  if (!conversation.messages.length && legacy && /^[a-zA-Z0-9_-]{1,128}$/.test(legacy)) conversation.threadId = legacy;
+  sessionStorage.setItem('navnit_chat_thread_id', conversation.threadId);
+} catch { /* In-memory chat remains usable. */ }
+let inFlight = false;
+let activeMessage = null;
+let currentStatus = '';
+let lastFocusedElement = null;
+function saveConversation() {
+  // Bound stored history; never trim a user question away from its answer.
+  while (conversation.messages.length > 80) {
+    const nextTurn = conversation.messages.findIndex((message,index) => index > 0 && message.role === 'user');
+    if (nextTurn < 0) break;
+    conversation.messages.splice(0,nextTurn);
+  }
+  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(conversation)); } catch { /* Quota/privacy mode: keep the working in-memory session. */ }
+}
+function errorMessage(failure) {
+  const reachable = failure.reachable;
+  if (failure.kind === 'interrupted') return 'The previous request was interrupted by navigation. Your question is saved. You can retry; the server may already have processed it.';
+  if (failure.kind === 'timeout') return reachable ? 'The server answered its readiness check, but the AI answer took too long. The request timed out; downstream AI services may be delayed. You can retry.' : 'The request timed out. The server may still be starting, or the connection may be delayed. This does not confirm an application failure. You can retry.';
+  if (failure.kind === 'network') return 'The connection could not be confirmed. A network, browser, or proxy restriction may be involved; this does not prove the app is offline. Your question is saved for retry.';
+  if (failure.kind === 'invalid') return 'The API returned an unexpected response instead of an answer. Your question is saved. You can retry or contact Navnit.';
+  if (failure.status === 429) return 'The API rate limit was reached. Wait about a minute before retrying. Your question is saved.';
+  if ([502,503,504].includes(failure.status)) return reachable ? `The server is reachable, but the chat request returned HTTP ${failure.status}. The AI service may be temporarily unavailable. This is separate from server readiness. Please retry shortly.` : `The service returned HTTP ${failure.status}. It may still be starting or temporarily unavailable; readiness is not confirmed. Please retry shortly.`;
+  if (failure.status >= 400 && failure.status < 500) return `The API rejected this request (HTTP ${failure.status}). This is not a cold-start delay. Check your question or contact Navnit.`;
+  return `The API returned HTTP ${failure.status || 'error'}. This is an API response failure, not a confirmed cold start. Your question is saved for retry.`;
+}
+function renderChat() {
+  $$('.chat-body').forEach(body => {
+    const wasNearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 65;
+    body.replaceChildren(element('div','msg bot',greeting));
+    conversation.messages.forEach(message => {
+      const bubble = element('div',`msg ${message.role}`);
+      if (message.role === 'bot') appendAnswerText(bubble,message.text);
+      else bubble.textContent = message.text;
+      body.append(bubble);
+      if (message.status === 'failed') {
+        const error = element('div','chat-error');
+        error.append(element('p','',errorMessage(message.failure || { kind:'network' })));
+        const retry = element('button','', 'Retry saved question ↻');
+        retry.type = 'button'; retry.dataset.retry = message.id; retry.disabled = inFlight;
+        retry.setAttribute('aria-label', `Retry question: ${message.text.slice(0,100)}`);
+        error.append(retry); body.append(error);
       }
     });
-  }, { threshold: 0.1 });
-
-  fabObserver.observe(heroChatConsole);
-}
-
-if (chatFab && chatClose) {
-  chatFab.onclick = () => chatWindow.classList.toggle('open');
-  chatClose.onclick = () => chatWindow.classList.remove('open');
-}
-
-/* Append User/Bot Message Concurrently to Both Chat Views */
-function appendMessageToAllViews(text, sender, prefix = '') {
-  chatHistory.push({ text, sender, prefix });
-  const bodies = [$('#heroChatBody'), $('#chatBody')].filter(Boolean);
-
-  bodies.forEach(bodyEl => {
-    const msg = document.createElement('div');
-    msg.className = `msg ${sender}`;
-    
-    if (prefix) {
-      const p = document.createElement('div');
-      p.className = 'cmd-prefix';
-      p.textContent = prefix;
-      msg.append(p);
+    if (inFlight) {
+      const status = element('div','chat-status-text',currentStatus);
+      status.setAttribute('role','status'); body.append(status);
     }
-
-    const content = document.createElement('div');
-    content.className = 'msg-content';
-
-    if (typeof marked !== 'undefined' && sender === 'bot') {
-      content.innerHTML = marked.parse(text);
-    } else {
-      content.textContent = text;
-    }
-
-    msg.append(content);
-    bodyEl.append(msg);
-    bodyEl.scrollTop = bodyEl.scrollHeight;
+    if (wasNearBottom || inFlight) body.scrollTop = body.scrollHeight;
   });
+  $$('.chat-form button, [data-question]').forEach(button => { button.disabled = inFlight; });
+  $$('.chat-form').forEach(form => form.setAttribute('aria-busy',String(inFlight)));
 }
-
-/* Append Status Indicator Concurrently to Both Chat Bodies */
-function appendStatusToAllViews(text) {
-  const bodies = [$('#heroChatBody'), $('#chatBody')].filter(Boolean);
-  const statusEls = [];
-
-  bodies.forEach(bodyEl => {
-    const st = document.createElement('div');
-    st.className = 'chat-status-text';
-    st.textContent = text;
-    bodyEl.append(st);
-    bodyEl.scrollTop = bodyEl.scrollHeight;
-    statusEls.push(st);
-  });
-
-  return statusEls;
+function setWaitingStatus(text) {
+  currentStatus = text;
+  $$('.chat-status-text').forEach(el => { el.textContent = text; });
 }
-
-/* Synchronized Non-Streaming API Execution (/chat) */
-async function executeRAGQuery(query, activeInputEl) {
-  const q = query || (activeInputEl ? activeInputEl.value.trim() : '');
-  if (!q) return;
-
-  // Clear BOTH input fields simultaneously
-  const heroIn = $('#heroChatInput'), chatIn = $('#chatInput');
-  if (heroIn) heroIn.value = '';
-  if (chatIn) chatIn.value = '';
-
-  // 1. Render User query in both chat bodies
-  appendMessageToAllViews(q, 'user');
-
-  // 2. Spawn loading indicators in both chat bodies
-  const statusEls = appendStatusToAllViews('// querying_rag_pipeline...');
-
+const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+async function waitForStartup(generation) {
+  const deadline = Date.now() + TIMING.startupBudget;
+  let result = await prewarmPromise;
+  if (generation !== queryGeneration) return result;
+  if (Date.now() - result.checkedAt > TIMING.healthFreshness) result = await checkBackendReadiness();
+  let attempts = 0;
+  // Only lightweight GETs retry automatically. No automatic POST replay: the
+  // backend has no idempotency contract and may already have processed a turn.
+  while (generation === queryGeneration && ['starting','timeout'].includes(result.kind) && Date.now() < deadline && attempts < 4) {
+    setWaitingStatus('The server may be waking up after inactivity. Your question is saved; checking again…');
+    const pause = Math.min(2000 * 2 ** attempts, Math.max(0,deadline - Date.now()));
+    await delay(pause);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0 || generation !== queryGeneration) break;
+    result = await checkBackendReadiness(Math.min(TIMING.healthTimeout, remaining));
+    attempts++;
+  }
+  // An inconclusive root endpoint must not block a potentially working /chat.
+  return result;
+}
+async function executeRAGQuery(question, input = null, retryId = null) {
+  if (inFlight) return;
+  const q = String(question || input?.value || '').trim();
+  if (!q || q.length > 2000) return;
+  const message = retryId ? conversation.messages.find(m => m.id === retryId && m.role === 'user' && m.status === 'failed') : { id:newId(), role:'user', text:q, status:'pending' };
+  if (!message) return;
+  // Retrying an older failed turn after later messages would contaminate backend
+  // thread order. Only the latest unresolved turn is offered in the UI.
+  if (retryId && message !== conversation.messages.at(-1)) return;
+  collapseSuggestionsAfterSubmission();
+  const generation = ++queryGeneration;
+  inFlight = true; activeMessage = message; message.status = 'pending'; delete message.failure;
+  if (!retryId) {
+    conversation.messages.forEach(m => { if (m.status === 'failed') m.status = 'complete'; });
+    conversation.messages.push(message);
+  }
+  if (input) {
+    input.value = '';
+    conversation.drafts[input.closest('[data-chat-view]').dataset.chatView] = '';
+  }
+  currentStatus = 'Preparing the server. First requests can take longer after inactivity…';
+  connectionStatus('Preparing server…','checking');
+  saveConversation(); renderChat();
+  let slowTimer;
+  let readiness;
   try {
-    const response = await fetch(CHATBOT_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: q,
-        thread_id: threadId
-      })
+    readiness = await waitForStartup(generation);
+    if (generation !== queryGeneration) return;
+    setWaitingStatus(readiness.kind === 'reachable' ? 'Server reached. Asking the AI about your question…' : 'Readiness is unconfirmed. Trying your question; startup or network delays are possible…');
+    connectionStatus('Asking AI…','answering','Server readiness and downstream LLM availability are checked separately.');
+    slowTimer = setTimeout(() => setWaitingStatus(readiness.kind === 'reachable' ? 'The AI is taking longer than usual. The server responded; downstream processing may be delayed…' : 'Still waiting. The server may be starting or the connection may be delayed…'), TIMING.slowAfter);
+    const answer = await fetchWithTimeout(CHATBOT_API_URL, {
+      method:'POST', mode:'cors', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question:q,thread_id:conversation.threadId})
+    }, TIMING.chatTimeout, async response => {
+      if (!response.ok) throw new RequestError('http',response.status);
+      let data;
+      try { data = await response.json(); } catch { throw new RequestError('invalid'); }
+      if (!data || typeof data.answer !== 'string' || !data.answer.trim() || data.answer.length > 30000) throw new RequestError('invalid');
+      return data.answer;
     });
-
-    // Remove status indicators
-    statusEls.forEach(el => el.remove());
-
-    if (!response.ok) throw new Error(`Server returned status ${response.status}`);
-
-    const data = await response.json();
-    const answer = data.answer || "I couldn't find specific details to answer that accurately.";
-    
-    // Append full bot response to both chat views
-    appendMessageToAllViews(answer, 'bot', '// rag_response');
-
-  } catch (err) {
-    statusEls.forEach(el => el.remove());
-    appendMessageToAllViews("Server waking up or unreachable. Please try again in a few seconds or reach out at yadavnv1526@gmail.com.", 'bot', '// error');
-  }
-}
-
-/* Event Listeners for Hero Chat Console */
-const heroChatInput = $('#heroChatInput'), heroChatSend = $('#heroChatSend');
-if (heroChatSend && heroChatInput) {
-  heroChatSend.onclick = () => executeRAGQuery(null, heroChatInput);
-  heroChatInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') executeRAGQuery(null, heroChatInput);
-  });
-}
-
-/* Event Listeners for Floating Chat Widget */
-const chatInput = $('#chatInput'), chatSend = $('#chatSend');
-if (chatSend && chatInput) {
-  chatSend.onclick = () => executeRAGQuery(null, chatInput);
-  chatInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') executeRAGQuery(null, chatInput);
-  });
-}
-
-function sendSharedChip(text) {
-  if (chatWindow && !chatWindow.classList.contains('open') && chatFab && chatFab.classList.contains('visible')) {
-    chatWindow.classList.add('open');
-  }
-  executeRAGQuery(text, null);
-}
-
-/* Ctrl+K Focus Shortcut */
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault();
-    if (chatWindow && chatWindow.classList.contains('open') && chatInput) {
-      chatInput.focus();
-    } else if (heroChatInput) {
-      heroChatInput.focus();
+    if (generation !== queryGeneration) return;
+    message.status = 'complete';
+    conversation.messages.push({id:newId(),role:'bot',text:answer,status:'complete'});
+    connectionStatus('Answer received · session memory can reset','ready');
+  } catch (error) {
+    if (generation !== queryGeneration) return;
+    message.status = 'failed';
+    message.failure = {kind:error.kind || 'network',status:error.status || 0,reachable:readiness?.kind === 'reachable'};
+    connectionStatus(error.kind === 'network' ? 'Connection unconfirmed' : error.kind === 'timeout' ? 'Request timed out · retry available' : 'Chat response unavailable · retry available','unknown');
+  } finally {
+    clearTimeout(slowTimer);
+    if (generation === queryGeneration) {
+      inFlight = false; activeMessage = null;
+      saveConversation(); renderChat();
     }
+    // Drafts written in either view during the request remain untouched.
+    if (input && document.activeElement === input) input.focus();
+  }
+}
+$$('[data-chat-view]').forEach(view => {
+  const input = view.querySelector('input');
+  input.value = conversation.drafts[view.dataset.chatView] || '';
+  input.addEventListener('input', () => { conversation.drafts[view.dataset.chatView] = input.value; saveConversation(); });
+  view.querySelector('form').addEventListener('submit', event => { event.preventDefault(); executeRAGQuery(null,input); });
+});
+/* Header-docked launcher reserves its own layout space instead of covering
+   cards or controls. Hide it while the main assistant is visible. */
+let heroAssistantVisible = false;
+function updateLauncherVisibility() {
+  const hero = $('#heroChatConsole');
+  if (hero) {
+    const rect = hero.getBoundingClientRect();
+    const visible = Math.min(rect.bottom,innerHeight) - Math.max(rect.top,$('.site-header').getBoundingClientRect().bottom);
+    heroAssistantVisible = visible > rect.height * .08;
+  }
+  $('#chatFab').hidden = heroAssistantVisible && $('#chatWindow').hidden && document.activeElement !== $('#chatFab');
+}
+if ($('#heroChatConsole') && 'IntersectionObserver' in window) {
+  const launcherObserver = new IntersectionObserver(entries => {
+    updateLauncherVisibility();
+  }, {threshold:[0,.08],rootMargin:'-90px 0px 0px 0px'});
+  launcherObserver.observe($('#heroChatConsole'));
+} else updateLauncherVisibility();
+window.addEventListener('scroll',updateLauncherVisibility,{passive:true});
+function positionChatPanel() {
+  const viewport = window.visualViewport;
+  const top = Math.max(12, $('.site-header').getBoundingClientRect().bottom + 12);
+  const available = (viewport?.height || innerHeight) + (viewport?.offsetTop || 0) - top - 12;
+  $('#chatWindow').style.setProperty('--chat-vv-top', `${Math.max(0,viewport?.offsetTop || 0)}px`);
+  $('#chatWindow').style.setProperty('--chat-vv-height', `${Math.max(220,viewport?.height || innerHeight)}px`);
+  $('#chatWindow').style.setProperty('--chat-panel-top', `${top}px`);
+  $('#chatWindow').style.setProperty('--chat-panel-height', `${Math.max(100,Math.min(620,available))}px`);
+}
+/* Full screen is a reversible presentation mode of the existing shared chat,
+   not another conversation, API request, or persisted thread. */
+let chatFullscreen = false;
+function setChatFullscreen(expanded, focus = true) {
+  const panel = $('#chatWindow');
+  chatFullscreen = Boolean(expanded);
+  panel.classList.toggle('is-fullscreen', chatFullscreen);
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen && !panel.hidden);
+  if (chatFullscreen) panel.setAttribute('aria-modal','true');
+  else panel.removeAttribute('aria-modal');
+  for (const outside of ['.site-header','main','footer']) {
+    const element = $(outside);
+    if (element) element.inert = chatFullscreen && !panel.hidden;
+  }
+  const button = $('#chatExpand');
+  button.setAttribute('aria-pressed', String(chatFullscreen));
+  button.setAttribute('aria-label', chatFullscreen ? 'Exit full screen AI assistant' : 'Expand AI assistant to full screen');
+  button.title = chatFullscreen ? 'Exit full screen' : 'Full screen';
+  button.textContent = chatFullscreen ? '⤢' : '⛶';
+  if (focus && !panel.hidden) button.focus({preventScroll:true});
+}
+function openChat() {
+  if ($('#chatWindow').hidden) lastFocusedElement = document.activeElement;
+  $('#chatWindow').hidden = false; $('#chatFab').setAttribute('aria-expanded','true');
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen);
+  updateLauncherVisibility(); positionChatPanel(); $('#chatInput').focus({preventScroll:true});
+}
+function closeChat() {
+  setChatFullscreen(false, false);
+  $('#chatWindow').hidden = true; $('#chatFab').setAttribute('aria-expanded','false');
+  if (lastFocusedElement === $('#chatFab')) $('#chatFab').hidden = false;
+  else updateLauncherVisibility();
+  if (lastFocusedElement?.isConnected && lastFocusedElement.getClientRects().length) lastFocusedElement.focus({preventScroll:true});
+  else if (heroAssistantVisible) $('#heroChatInput').focus({preventScroll:true});
+  else $('#chatFab').focus({preventScroll:true});
+  updateLauncherVisibility();
+}
+window.addEventListener('resize',positionChatPanel);
+window.visualViewport?.addEventListener('resize', () => {
+  positionChatPanel();
+  if (!$('#chatWindow').hidden && $('#chatWindow').contains(document.activeElement)) document.activeElement.scrollIntoView({block:'nearest'});
+});
+// Avoid a native focus scroll to the sticky header’s original document position.
+$('#chatFab').addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  event.preventDefault(); $('#chatFab').focus({preventScroll:true});
+});
+$('#chatFab').addEventListener('blur', () => requestAnimationFrame(updateLauncherVisibility));
+$('#chatFab').addEventListener('click', () => { if ($('#chatWindow').hidden) openChat(); else closeChat(); });
+$('#chatClose').addEventListener('click',closeChat);
+$('#chatExpand').addEventListener('click', () => setChatFullscreen(!chatFullscreen));
+$('#heroChatExpand')?.addEventListener('click', () => {
+  // Expand the existing floating view; both views share a thread and transcript.
+  openChat();
+  setChatFullscreen(true);
+});
+document.addEventListener('click', event => {
+  const retry = event.target.closest('[data-retry]');
+  if (retry) { const saved = conversation.messages.find(m => m.id === retry.dataset.retry); if (saved) executeRAGQuery(saved.text,null,saved.id); return; }
+  const question = event.target.closest('[data-question]');
+  if (question && !inFlight) {
+    if (question.closest('[data-chat-view=hero]')) $('#heroChatInput').focus();
+    else openChat();
+    executeRAGQuery(question.dataset.question);
+  }
+  if (event.target.closest('[data-open-chat]')) openChat();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !$('#chatWindow').hidden) {
+    if (chatFullscreen) {
+      event.preventDefault();
+      setChatFullscreen(false);
+    } else closeChat();
+  }
+  if (event.key === 'Tab' && chatFullscreen && !$('#chatWindow').hidden) {
+    const focusable = [...$('#chatWindow').querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')]
+      .filter(el => !el.closest('[hidden]') && el.getClientRects().length);
+    if (focusable.length) {
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    if ($('#chatWindow').hidden && $('#heroChatInput')) $('#heroChatInput').focus(); else openChat();
   }
 });
+// Save pending state and drafts before a full-page navigation. On the next page
+// the pending question becomes an explicit interrupted request, never a replay.
+window.addEventListener('pagehide', () => {
+  queryGeneration++;
+  if (activeMessage) { activeMessage.status = 'failed'; activeMessage.failure = {kind:'interrupted',status:0}; }
+  inFlight = false; activeMessage = null;
+  saveConversation();
+  pageRequests.forEach(controller => controller.abort());
+});
+window.addEventListener('pageshow', event => {
+  if (!event.persisted) return;
+  const latest = loadConversation();
+  conversation.messages = latest.messages; conversation.drafts = latest.drafts; conversation.threadId = latest.threadId;
+  if (activeMessage) {
+    // A BFCache-restored request can no longer reliably own the current thread.
+    // A reload recovers persisted state and prevents a stale response from rendering.
+    location.reload(); return;
+  }
+  $$('[data-chat-view]').forEach(view => { view.querySelector('input').value = conversation.drafts[view.dataset.chatView] || ''; });
+  renderChat();
+});
+saveConversation(); renderChat();
