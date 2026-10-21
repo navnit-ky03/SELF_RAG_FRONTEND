@@ -557,4 +557,52 @@ class PortfolioBrowserTests(unittest.TestCase):
         }""")
         for check in checks:self.assertGreaterEqual(check['ratio'],4.5,str(check))
 
+
+    def test_22_fullscreen_chat_desktop_keyboard_and_long_answer(self):
+        self.goto()
+        self.page.locator('#heroChatExpand').click()
+        panel=self.page.locator('#chatWindow')
+        expect(panel).to_be_visible()
+        self.assertIn('is-fullscreen',panel.get_attribute('class'))
+        self.assertEqual(panel.get_attribute('aria-modal'),'true')
+        self.assertEqual(self.page.locator('#chatExpand').get_attribute('aria-pressed'),'true')
+        self.assertEqual(self.page.locator('body').evaluate('(el)=>getComputedStyle(el).overflow'),'hidden')
+        self.page.locator('#chatBody').evaluate("""el => {
+          const long=document.createElement('div');
+          long.className='msg bot';
+          long.textContent='Documented technical explanation. '.repeat(500);
+          el.append(long);
+        }""")
+        transcript=self.page.locator('#chatBody')
+        self.assertTrue(transcript.evaluate('(el)=>el.scrollHeight>el.clientHeight'),
+                        'Long answers must scroll independently')
+        self.assertTrue(self.page.locator('#chatWindow .chat-form').is_visible())
+        self.assertEqual(self.posts,[], 'Expanding must not make a chat POST')
+        self.page.keyboard.press('Escape')
+        self.assertNotIn('is-fullscreen',panel.get_attribute('class'))
+        expect(panel).to_be_visible()
+        self.assertNotEqual(self.page.locator('body').evaluate('(el)=>getComputedStyle(el).overflow'),'hidden')
+        self.page.keyboard.press('Escape')
+        expect(panel).to_be_hidden()
+        self.assertEqual(self.posts,[])
+
+    def test_23_fullscreen_mobile_header_and_close(self):
+        self.page.set_viewport_size({'width':375,'height':640})
+        self.goto('projects/neuroscan-ai/')
+        self.open_floating()
+        self.page.locator('#chatExpand').click()
+        panel=self.page.locator('#chatWindow')
+        self.assertIn('is-fullscreen',panel.get_attribute('class'))
+        geometry=panel.bounding_box()
+        self.assertLess(abs(geometry['x']),2)
+        self.assertGreaterEqual(geometry['width'],374)
+        self.assertGreaterEqual(geometry['height'],500)
+        self.assertTrue(self.page.locator('#chatInput').is_visible())
+        self.assertTrue(self.page.locator('#chatClose').is_visible())
+        self.page.locator('#chatInput').fill('A draft remains intact')
+        self.page.locator('#chatClose').click()
+        expect(panel).to_be_hidden()
+        self.assertFalse(self.page.locator('main').evaluate('(el)=>el.inert'))
+        self.assertEqual(self.posts,[])
+
 if __name__=='__main__':unittest.main(verbosity=2)
