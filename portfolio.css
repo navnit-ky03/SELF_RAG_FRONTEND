@@ -2962,7 +2962,7 @@ body.chat-fullscreen-active { overflow:hidden; }
    Expand to reveal the existing bounded, independently scrollable suggestions. */
 .chat-suggestions { border-top:0; padding:5px 12px 0; background:transparent; }
 .chat-suggestions .suggestion-toggle {
-  display:inline-flex; width:auto; min-height:36px; max-width:100%;
+  display:inline-flex; width:auto; min-height:44px; max-width:100%;
   margin:0; padding:7px 12px; gap:8px; border:1px solid #3c6772;
   border-radius:999px; background:#143039; font-size:11px;
 }
@@ -2980,6 +2980,6 @@ body.chat-fullscreen-active { overflow:hidden; }
 .chat-window.is-fullscreen .chat-suggestions { padding:6px max(12px,calc((100% - 900px)/2)) 0; }
 @media(max-width:640px) {
   .chat-suggestions { padding:5px 9px 0; }
-  .chat-suggestions .suggestion-toggle { min-height:36px; padding:6px 10px; }
+  .chat-suggestions .suggestion-toggle { min-height:44px; padding:6px 10px; }
   .chat-window.is-fullscreen .chat-suggestions { padding:5px 10px 0; }
 }
