@@ -383,15 +383,17 @@ function errorMessage(failure) {
   if (failure.status >= 400 && failure.status < 500) return `The API rejected this request (HTTP ${failure.status}). This is not a cold-start delay. Check your question or contact Navnit.`;
   return `The API returned HTTP ${failure.status || 'error'}. This is an API response failure, not a confirmed cold start. Your question is saved for retry.`;
 }
-function renderChat() {
+function renderChat({ showLatestAnswerFromStart = false } = {}) {
   $$('.chat-body').forEach(body => {
     const wasNearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 65;
     body.replaceChildren(element('div','msg bot',greeting));
+    let latestAnswerBubble = null;
     conversation.messages.forEach(message => {
       const bubble = element('div',`msg ${message.role}`);
       if (message.role === 'bot') appendAnswerText(bubble,message.text);
       else bubble.textContent = message.text;
       body.append(bubble);
+      if (message.role === 'bot' && message.status === 'complete') latestAnswerBubble = bubble;
       if (message.status === 'failed') {
         const error = element('div','chat-error');
         error.append(element('p','',errorMessage(message.failure || { kind:'network' })));
@@ -405,7 +407,12 @@ function renderChat() {
       const status = element('div','chat-status-text',currentStatus);
       status.setAttribute('role','status'); body.append(status);
     }
-    if (wasNearBottom || inFlight) body.scrollTop = body.scrollHeight;
+    if (showLatestAnswerFromStart && latestAnswerBubble && body.getClientRects().length) {
+      // Show the beginning of the new answer, without moving the outer page.
+      const answerTop = latestAnswerBubble.getBoundingClientRect().top;
+      const transcriptTop = body.getBoundingClientRect().top;
+      body.scrollTop += answerTop - transcriptTop - 12;
+    } else if (wasNearBottom || inFlight) body.scrollTop = body.scrollHeight;
   });
   $$('.chat-form button, [data-question]').forEach(button => { button.disabled = inFlight; });
   $$('.chat-form').forEach(form => form.setAttribute('aria-busy',String(inFlight)));
@@ -489,7 +496,7 @@ async function executeRAGQuery(question, input = null, retryId = null) {
     clearTimeout(slowTimer);
     if (generation === queryGeneration) {
       inFlight = false; activeMessage = null;
-      saveConversation(); renderChat();
+      saveConversation(); renderChat({ showLatestAnswerFromStart: message.status === 'complete' });
     }
     // Drafts written in either view during the request remain untouched.
     if (input && document.activeElement === input) input.focus();
@@ -532,6 +539,7 @@ function positionChatPanel() {
 /* Full screen is a reversible presentation mode of the existing shared chat,
    not another conversation, API request, or persisted thread. */
 let chatFullscreen = false;
+let fullscreenFromHero = false;
 function setChatFullscreen(expanded, focus = true) {
   const panel = $('#chatWindow');
   chatFullscreen = Boolean(expanded);
@@ -557,6 +565,7 @@ function openChat() {
   updateLauncherVisibility(); positionChatPanel(); $('#chatInput').focus({preventScroll:true});
 }
 function closeChat() {
+  fullscreenFromHero = false;
   setChatFullscreen(false, false);
   $('#chatWindow').hidden = true; $('#chatFab').setAttribute('aria-expanded','false');
   if (lastFocusedElement === $('#chatFab')) $('#chatFab').hidden = false;
@@ -579,10 +588,22 @@ $('#chatFab').addEventListener('pointerdown', event => {
 $('#chatFab').addEventListener('blur', () => requestAnimationFrame(updateLauncherVisibility));
 $('#chatFab').addEventListener('click', () => { if ($('#chatWindow').hidden) openChat(); else closeChat(); });
 $('#chatClose').addEventListener('click',closeChat);
-$('#chatExpand').addEventListener('click', () => setChatFullscreen(!chatFullscreen));
+function minimizeChat() {
+  if (fullscreenFromHero) {
+    // Restore the homepage's embedded assistant, not a popup covering the hero.
+    closeChat();
+    const origin = $('#heroChatExpand');
+    if (origin?.getClientRects().length) origin.focus({preventScroll:true});
+  } else setChatFullscreen(false);
+}
+$('#chatExpand').addEventListener('click', () => {
+  if (chatFullscreen) minimizeChat();
+  else { fullscreenFromHero = false; setChatFullscreen(true); }
+});
 $('#heroChatExpand')?.addEventListener('click', () => {
   // Expand the existing floating view; both views share a thread and transcript.
   openChat();
+  fullscreenFromHero = true;
   setChatFullscreen(true);
 });
 document.addEventListener('click', event => {
@@ -600,7 +621,7 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !$('#chatWindow').hidden) {
     if (chatFullscreen) {
       event.preventDefault();
-      setChatFullscreen(false);
+      minimizeChat();
     } else closeChat();
   }
   if (event.key === 'Tab' && chatFullscreen && !$('#chatWindow').hidden) {

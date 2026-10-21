@@ -590,11 +590,10 @@ class PortfolioBrowserTests(unittest.TestCase):
         self.assertTrue(self.page.locator('#chatWindow .chat-form').is_visible())
         self.assertEqual(self.posts,[], 'Expanding must not make a chat POST')
         self.page.keyboard.press('Escape')
-        self.assertNotIn('is-fullscreen',panel.get_attribute('class'))
-        expect(panel).to_be_visible()
-        self.assertNotEqual(self.page.locator('body').evaluate('(el)=>getComputedStyle(el).overflow'),'hidden')
-        self.page.keyboard.press('Escape')
         expect(panel).to_be_hidden()
+        self.assertNotIn('is-fullscreen',panel.get_attribute('class'))
+        expect(self.page.locator('#heroChatBody')).to_be_visible()
+        self.assertNotEqual(self.page.locator('body').evaluate('(el)=>getComputedStyle(el).overflow'),'hidden')
         self.assertEqual(self.posts,[])
 
     def test_23_fullscreen_mobile_header_and_close(self):
@@ -615,5 +614,52 @@ class PortfolioBrowserTests(unittest.TestCase):
         expect(panel).to_be_hidden()
         self.assertFalse(self.page.locator('main').evaluate('(el)=>el.inert'))
         self.assertEqual(self.posts,[])
+
+
+    def test_27_compact_suggestion_button_collapsed_and_expanded(self):
+        self.goto('contact/')
+        self.open_floating()
+        toggle=self.page.locator('#floatingSuggestionToggle')
+        chat=self.page.locator('#chatWindow')
+        compact=toggle.bounding_box()
+        box=chat.bounding_box()
+        self.assertLess(compact['width'],box['width']*.8)
+        self.assertGreaterEqual(compact['height'],44)
+        self.assertEqual(toggle.get_attribute('aria-expanded'),'false')
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_hidden()
+        toggle.click()
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_visible()
+        self.assertEqual(toggle.get_attribute('aria-expanded'),'true')
+        toggle.click()
+        expect(self.page.locator('#floatingSuggestionPanel')).to_be_hidden()
+        self.assertEqual(self.posts,[])
+
+    def test_28_answer_starts_at_top_not_last_line(self):
+        self.goto('contact/')
+        self.open_floating()
+        # Simulate a long, verified API response using the existing mocked backend.
+        long_answer='First line of the AI explanation.\\n\\n' + ('Further technical details.\\n\\n'*100)
+        self.mode='success'
+        self.page.unroute(RENDER+'**',self.backend)
+        def long_response(route):
+            if route.request.method=='OPTIONS':
+                route.fulfill(status=204,headers=HEADERS)
+            elif route.request.url==RENDER:
+                route.fulfill(status=200,headers=HEADERS,json={'status':'ok'})
+            else:
+                route.fulfill(status=200,headers=HEADERS,json={'answer':long_answer})
+        self.page.route(RENDER+'**',long_response)
+        self.page.locator('#chatInput').fill('Explain the architecture in detail')
+        self.page.locator('#chatWindow .chat-form').evaluate('(form)=>form.requestSubmit()')
+        expect(self.page.locator('#chatBody .msg.bot')).to_have_count(2)
+        transcript=self.page.locator('#chatBody')
+        metrics=transcript.evaluate("""el => {
+          const answer=el.querySelectorAll('.msg.bot')[1];
+          return {scrollTop:el.scrollTop,maxScroll:el.scrollHeight-el.clientHeight,
+                  offset:answer.getBoundingClientRect().top-el.getBoundingClientRect().top};
+        }""")
+        self.assertGreater(metrics['maxScroll'],300)
+        self.assertLess(abs(metrics['offset']),75,metrics)
+        self.assertLess(metrics['scrollTop'],metrics['maxScroll']-150,metrics)
 
 if __name__=='__main__':unittest.main(verbosity=2)
