@@ -2957,3 +2957,29 @@ body.chat-fullscreen-active { overflow:hidden; }
 @media (prefers-reduced-motion:reduce) {
   .chat-window.is-fullscreen { transition:none; }
 }
+
+/* Compact suggestions: in the collapsed state only a small pill occupies room.
+   Expand to reveal the existing bounded, independently scrollable suggestions. */
+.chat-suggestions { border-top:0; padding:5px 12px 0; background:transparent; }
+.chat-suggestions .suggestion-toggle {
+  display:inline-flex; width:auto; min-height:36px; max-width:100%;
+  margin:0; padding:7px 12px; gap:8px; border:1px solid #3c6772;
+  border-radius:999px; background:#143039; font-size:11px;
+}
+.chat-suggestions .suggestion-toggle:hover { border-color:#84edfa; }
+.chat-suggestions .suggestion-toggle[aria-expanded=true] {
+  border-radius:10px 10px 0 0; border-bottom-color:transparent;
+  background:#163440;
+}
+.chat-suggestions .disclosure-chevron { margin-left:8px; }
+.chat-suggestions .suggestion-panel {
+  border:1px solid #3c6772; border-radius:0 10px 10px 10px;
+  background:#10242d; padding:10px 12px;
+  margin:0 0 5px; max-width:100%;
+}
+.chat-window.is-fullscreen .chat-suggestions { padding:6px max(12px,calc((100% - 900px)/2)) 0; }
+@media(max-width:640px) {
+  .chat-suggestions { padding:5px 9px 0; }
+  .chat-suggestions .suggestion-toggle { min-height:36px; padding:6px 10px; }
+  .chat-window.is-fullscreen .chat-suggestions { padding:5px 10px 0; }
+}
