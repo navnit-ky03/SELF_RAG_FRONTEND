@@ -527,12 +527,29 @@ function positionChatPanel() {
   $('#chatWindow').style.setProperty('--chat-panel-top', `${top}px`);
   $('#chatWindow').style.setProperty('--chat-panel-height', `${Math.max(100,Math.min(620,available))}px`);
 }
+/* Full screen is a reversible presentation mode of the existing shared chat,
+   not another conversation, API request, or persisted thread. */
+let chatFullscreen = false;
+function setChatFullscreen(expanded, focus = true) {
+  const panel = $('#chatWindow');
+  chatFullscreen = Boolean(expanded);
+  panel.classList.toggle('is-fullscreen', chatFullscreen);
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen && !panel.hidden);
+  const button = $('#chatExpand');
+  button.setAttribute('aria-pressed', String(chatFullscreen));
+  button.setAttribute('aria-label', chatFullscreen ? 'Exit full screen AI assistant' : 'Expand AI assistant to full screen');
+  button.title = chatFullscreen ? 'Exit full screen' : 'Full screen';
+  button.textContent = chatFullscreen ? '⤢' : '⛶';
+  if (focus && !panel.hidden) button.focus({preventScroll:true});
+}
 function openChat() {
   if ($('#chatWindow').hidden) lastFocusedElement = document.activeElement;
   $('#chatWindow').hidden = false; $('#chatFab').setAttribute('aria-expanded','true');
+  document.body.classList.toggle('chat-fullscreen-active', chatFullscreen);
   updateLauncherVisibility(); positionChatPanel(); $('#chatInput').focus({preventScroll:true});
 }
 function closeChat() {
+  setChatFullscreen(false, false);
   $('#chatWindow').hidden = true; $('#chatFab').setAttribute('aria-expanded','false');
   if (lastFocusedElement === $('#chatFab')) $('#chatFab').hidden = false;
   else updateLauncherVisibility();
@@ -554,6 +571,12 @@ $('#chatFab').addEventListener('pointerdown', event => {
 $('#chatFab').addEventListener('blur', () => requestAnimationFrame(updateLauncherVisibility));
 $('#chatFab').addEventListener('click', () => { if ($('#chatWindow').hidden) openChat(); else closeChat(); });
 $('#chatClose').addEventListener('click',closeChat);
+$('#chatExpand').addEventListener('click', () => setChatFullscreen(!chatFullscreen));
+$('#heroChatExpand')?.addEventListener('click', () => {
+  // Expand the existing floating view; both views share a thread and transcript.
+  openChat();
+  setChatFullscreen(true);
+});
 document.addEventListener('click', event => {
   const retry = event.target.closest('[data-retry]');
   if (retry) { const saved = conversation.messages.find(m => m.id === retry.dataset.retry); if (saved) executeRAGQuery(saved.text,null,saved.id); return; }
@@ -566,7 +589,12 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-open-chat]')) openChat();
 });
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !$('#chatWindow').hidden) closeChat();
+  if (event.key === 'Escape' && !$('#chatWindow').hidden) {
+    if (chatFullscreen) {
+      event.preventDefault();
+      setChatFullscreen(false);
+    } else closeChat();
+  }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
     if ($('#chatWindow').hidden && $('#heroChatInput')) $('#heroChatInput').focus(); else openChat();
