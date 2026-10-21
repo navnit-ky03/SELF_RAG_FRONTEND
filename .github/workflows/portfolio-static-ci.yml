@@ -1,0 +1,28 @@
+name: Portfolio static regression
+on:
+  push:
+    branches: [feature/portfolio-v2.2]
+  pull_request:
+    branches: [feature/portfolio-v2, main]
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JS syntax
+        run: |
+          node --check portfolio.js
+          node --check scripts/build.mjs
+      - name: Generate pages
+        run: npm run build
+      - name: Assert generated site is committed
+        run: git diff --exit-code
+      - name: Static and fullscreen regression
+        run: npm test
