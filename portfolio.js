@@ -524,6 +524,8 @@ function positionChatPanel() {
   const viewport = window.visualViewport;
   const top = Math.max(12, $('.site-header').getBoundingClientRect().bottom + 12);
   const available = (viewport?.height || innerHeight) + (viewport?.offsetTop || 0) - top - 12;
+  $('#chatWindow').style.setProperty('--chat-vv-top', `${Math.max(0,viewport?.offsetTop || 0)}px`);
+  $('#chatWindow').style.setProperty('--chat-vv-height', `${Math.max(220,viewport?.height || innerHeight)}px`);
   $('#chatWindow').style.setProperty('--chat-panel-top', `${top}px`);
   $('#chatWindow').style.setProperty('--chat-panel-height', `${Math.max(100,Math.min(620,available))}px`);
 }
@@ -535,6 +537,12 @@ function setChatFullscreen(expanded, focus = true) {
   chatFullscreen = Boolean(expanded);
   panel.classList.toggle('is-fullscreen', chatFullscreen);
   document.body.classList.toggle('chat-fullscreen-active', chatFullscreen && !panel.hidden);
+  if (chatFullscreen) panel.setAttribute('aria-modal','true');
+  else panel.removeAttribute('aria-modal');
+  for (const outside of ['.site-header','main','footer']) {
+    const element = $(outside);
+    if (element) element.inert = chatFullscreen && !panel.hidden;
+  }
   const button = $('#chatExpand');
   button.setAttribute('aria-pressed', String(chatFullscreen));
   button.setAttribute('aria-label', chatFullscreen ? 'Exit full screen AI assistant' : 'Expand AI assistant to full screen');
@@ -594,6 +602,15 @@ document.addEventListener('keydown', event => {
       event.preventDefault();
       setChatFullscreen(false);
     } else closeChat();
+  }
+  if (event.key === 'Tab' && chatFullscreen && !$('#chatWindow').hidden) {
+    const focusable = [...$('#chatWindow').querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')]
+      .filter(el => !el.closest('[hidden]') && el.getClientRects().length);
+    if (focusable.length) {
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
   }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
     event.preventDefault();
