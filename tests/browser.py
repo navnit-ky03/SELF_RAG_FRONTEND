@@ -379,7 +379,18 @@ class PortfolioBrowserTests(unittest.TestCase):
         for width in [320,375,768,1440]:
             with self.subTest(width=width):
                 self.page.set_viewport_size({'width':width,'height':812})
-                self.goto();expect(self.page.locator('#chatFab')).to_be_hidden()
+                self.goto()
+                # The mobile hero assistant may begin below the fold. In that
+                # case the reserved-header launcher is correctly visible.
+                # Assert visibility against the actual hero-console viewport
+                # overlap instead of an unconditional initial-hidden rule.
+                launcher_should_hide=self.page.evaluate("""() => {
+                  const hero=document.querySelector('#heroChatConsole').getBoundingClientRect();
+                  const header=document.querySelector('.site-header').getBoundingClientRect();
+                  const visible=Math.min(hero.bottom,innerHeight)-Math.max(hero.top,header.bottom);
+                  return visible>hero.height*.08;
+                }""")
+                self.assertEqual(self.page.locator('#chatFab').is_hidden(),launcher_should_hide)
                 self.page.locator('.featured-section').evaluate("el=>el.scrollIntoView({block:'start'})")
                 expect(self.page.locator('#chatFab')).to_be_visible()
                 self.goto('skills/')
